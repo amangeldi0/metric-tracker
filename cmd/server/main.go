@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/amangeldi0/metric-tracker/cmd/server/metric"
 	"net/http"
 	"strconv"
@@ -42,8 +41,6 @@ func updateHandler(w http.ResponseWriter, r *http.Request, metricStorage *metric
 		http.Error(w, "Invalid specified the path", http.StatusNotFound)
 		return
 	}
-
-	fmt.Println(pathSlice)
 
 	metricType := pathSlice[1]
 	metricName := pathSlice[2]

@@ -1,5 +1,7 @@
 package metric
 
+import "log"
+
 const (
 	GaugeType   = "gauge"
 	CounterType = "counter"
@@ -21,6 +23,8 @@ func (m MemStorage) UpdateGauge(newValue float64, metricName string) {
 	m[metricName] = MemValue{
 		gauge: newValue,
 	}
+
+	log.Println(metricName, newValue)
 }
 
 func (m MemStorage) AddCounter(value int64, metricName string) {
@@ -36,4 +40,6 @@ func (m MemStorage) AddCounter(value int64, metricName string) {
 			counter: c.counter + value,
 		}
 	}
+
+	log.Println(metricName, value)
 }
