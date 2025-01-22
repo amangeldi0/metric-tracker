@@ -39,7 +39,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request, metricStorage *metric
 	pathSlice := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")
 
 	if len(pathSlice) < 4 {
-		http.Error(w, "Invalid specified the path", http.StatusBadRequest)
+		http.Error(w, "Invalid specified the path", http.StatusNotFound)
 		return
 	}
 
