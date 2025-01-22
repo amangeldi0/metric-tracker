@@ -42,13 +42,13 @@ func main() {
 }
 
 func PostMetrics(metrics map[string]float64, pollCount int64) {
-	baseUrl := "http://127.0.0.1:8080/update"
+	baseURL := "http://127.0.0.1:8080/update"
 
 	client := &http.Client{}
 
 	for k, v := range metrics {
 		s := strconv.FormatFloat(v, 'f', -1, 64)
-		url := baseUrl + "/" + "gauge" + "/" + strings.ToLower(k) + "/" + s
+		url := baseURL + "/" + "gauge" + "/" + strings.ToLower(k) + "/" + s
 
 		r, err := client.Post(url, "text/plain", nil)
 		if err != nil {
@@ -61,9 +61,13 @@ func PostMetrics(metrics map[string]float64, pollCount int64) {
 		}
 
 		fmt.Printf(" - %s - %f \n", k, v)
+
+		if err := r.Body.Close(); err != nil {
+			log.Printf("PostMetrics: Error closing body: %s", err.Error())
+		}
 	}
 
-	url := baseUrl + "/" + "counter" + "/" + "pollcount" + "/" + strconv.FormatInt(pollCount, 10)
+	url := baseURL + "/" + "counter" + "/" + "pollcount" + "/" + strconv.FormatInt(pollCount, 10)
 
 	r, err := client.Post(url, "text/plain", nil)
 
@@ -78,6 +82,10 @@ func PostMetrics(metrics map[string]float64, pollCount int64) {
 	fmt.Println()
 
 	log.Println("PostMetrics: Success")
+
+	if err := r.Body.Close(); err != nil {
+		log.Printf("PostMetrics: Error closing body: %s", err.Error())
+	}
 }
 
 func GetGaugeMetricMaps() map[string]float64 {
