@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-var baseURL = "http://127.0.0.1:8080/update"
-
 func TestGetGaugeMetricMaps(t *testing.T) {
 	metrics := GetGaugeMetricMaps()
 
@@ -44,7 +42,6 @@ func TestPostMetrics(t *testing.T) {
 	}
 	pollCount := int64(42)
 
-	baseURL = server.URL
 	PostMetrics(metrics, pollCount)
 }
 
@@ -59,6 +56,5 @@ func TestPostMetricsError(t *testing.T) {
 	}
 	pollCount := int64(42)
 
-	baseURL = server.URL
 	PostMetrics(metrics, pollCount)
 }
