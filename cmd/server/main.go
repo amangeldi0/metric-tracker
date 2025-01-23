@@ -15,7 +15,7 @@ func main() {
 
 	mux.HandleFunc("POST /update/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
@@ -33,6 +33,12 @@ func run(handler http.Handler) error {
 }
 
 func updateHandler(w http.ResponseWriter, r *http.Request, metricStorage *metric.MemStorage) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 
 	pathSlice := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")

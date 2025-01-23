@@ -8,8 +8,8 @@ const (
 )
 
 type MemValue struct {
-	counter int64
-	gauge   float64
+	Counter int64
+	Gauge   float64
 }
 
 type MemStorage map[string]MemValue
@@ -21,7 +21,7 @@ func NewMemStorage() *MemStorage {
 
 func (m MemStorage) UpdateGauge(newValue float64, metricName string) {
 	m[metricName] = MemValue{
-		gauge: newValue,
+		Gauge: newValue,
 	}
 
 	log.Println(metricName, newValue)
@@ -33,11 +33,11 @@ func (m MemStorage) AddCounter(value int64, metricName string) {
 
 	if !ok {
 		m[metricName] = MemValue{
-			counter: value,
+			Counter: value,
 		}
 	} else {
 		m[metricName] = MemValue{
-			counter: c.counter + value,
+			Counter: c.Counter + value,
 		}
 	}
 
