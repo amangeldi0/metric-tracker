@@ -41,6 +41,10 @@ func TestRunRoutes(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %v", resp.StatusCode)
 	}
+
+	if err = resp.Body.Close(); err != nil {
+		t.Errorf("Failed to close response body: %v", err)
+	}
 }
 
 func TestUpdateHandlerInvalidPath(t *testing.T) {
