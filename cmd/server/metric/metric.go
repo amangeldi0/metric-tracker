@@ -24,7 +24,8 @@ func (m MemStorage) UpdateGauge(newValue float64, metricName string) {
 		Gauge: newValue,
 	}
 
-	log.Println(metricName, newValue)
+	log.Printf("# Server - Gauge - %s ", metricName)
+
 }
 
 func (m MemStorage) AddCounter(value int64, metricName string) {
@@ -41,5 +42,6 @@ func (m MemStorage) AddCounter(value int64, metricName string) {
 		}
 	}
 
-	log.Println(metricName, value)
+	log.Printf("# Server - Gauge - %s ", metricName)
+
 }

@@ -22,23 +22,19 @@ func main() {
 	var pollCount atomic.Int64
 
 	collector := GetGaugeMetricMaps()
-	pollTicker := time.NewTicker(pollInterval)
-	reportTicker := time.NewTicker(reportInterval)
-
-	defer pollTicker.Stop()
-	defer reportTicker.Stop()
 
 	go func() {
-		for range pollTicker.C {
+		for {
 			collector = GetGaugeMetricMaps()
 			pollCount.Add(1)
+			time.Sleep(pollInterval)
 		}
 	}()
 
-	for range reportTicker.C {
+	for {
 		PostMetrics(collector, pollCount.Load())
+		time.Sleep(reportInterval)
 	}
-
 }
 
 func PostMetrics(metrics map[string]float64, pollCount int64) {
@@ -87,7 +83,6 @@ func PostMetrics(metrics map[string]float64, pollCount int64) {
 		log.Printf("PostMetrics: Error closing body: %s", err.Error())
 	}
 }
-
 func GetGaugeMetricMaps() map[string]float64 {
 
 	var memStats runtime.MemStats
