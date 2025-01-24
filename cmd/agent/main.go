@@ -38,13 +38,13 @@ func main() {
 }
 
 func PostMetrics(metrics map[string]float64, pollCount int64) {
-	baseURL := "http://127.0.0.1:8080/update"
+	baseURL := "http://localhost:8080/update"
 
 	client := &http.Client{}
 
 	for k, v := range metrics {
 		s := strconv.FormatFloat(v, 'f', -1, 64)
-		url := baseURL + "/" + "gauge" + "/" + strings.ToLower(k) + "/" + s
+		url := fmt.Sprintf("%s/gauge/%s/%s", baseURL, strings.ToLower(k), s)
 
 		r, err := client.Post(url, "text/plain", nil)
 		if err != nil {
@@ -63,7 +63,7 @@ func PostMetrics(metrics map[string]float64, pollCount int64) {
 		}
 	}
 
-	url := baseURL + "/" + "counter" + "/" + "pollcount" + "/" + strconv.FormatInt(pollCount, 10)
+	url := fmt.Sprintf("%s/gauge/pollcount/%s", baseURL, strconv.FormatInt(pollCount, 10))
 
 	r, err := client.Post(url, "text/plain", nil)
 
