@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/amangeldi0/metric-tracker/cmd/server/metric"
+	"fmt"
+	"github.com/amangeldi0/metric-tracker/cmd/server/metricsapi"
+	"github.com/amangeldi0/metric-tracker/internal/config"
 	"log"
 	"net/http"
 )
@@ -9,13 +11,18 @@ import (
 func main() {
 
 	mux := http.NewServeMux()
-
-	ms := metric.NewMemStorage()
+	cfg := config.New()
+	ms := metricsapi.New()
 
 	mux.HandleFunc("/update/", ms.UpdateHandler)
 
-	err := http.ListenAndServe("localhost:8080", mux)
+	sAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+
+	err := http.ListenAndServe(sAddr, mux)
+
 	if err != nil {
 		log.Panic(err)
 	}
+
+	log.Printf("server started on %s", sAddr)
 }
