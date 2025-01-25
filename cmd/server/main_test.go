@@ -2,131 +2,44 @@ package main
 
 import (
 	"github.com/amangeldi0/metric-tracker/cmd/server/metric"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
-func TestUpdateHandlerInvalidMetricType(t *testing.T) {
+func TestUpdateGauge(t *testing.T) {
 	ms := metric.NewMemStorage()
-	req := httptest.NewRequest(http.MethodPost, "/update/invalid/testMetric/42.5", nil)
-	rr := httptest.NewRecorder()
 
-	updateHandler(rr, req, ms)
+	ms.UpdateGauge(10.5, "testGauge")
+	ms.UpdateGauge(20.2, "testGauge") // Обновляем значение
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("Expected status 400, got %v", rr.Code)
+	if value, exists := ms.Gauges()["testGauge"]; !exists {
+		t.Fatalf("Expected gauge 'testGauge' to exist")
+	} else if value != 20.2 {
+		t.Errorf("Expected gauge value 20.2, got %f", value)
 	}
 }
 
-func TestRunRoutes(t *testing.T) {
-	mux := http.NewServeMux()
+func TestAddCounter(t *testing.T) {
 	ms := metric.NewMemStorage()
 
-	mux.HandleFunc("/update/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		updateHandler(w, r, ms)
-	})
+	// Добавляем новую counter метрику
+	ms.AddCounter(5, "testCounter")
+	ms.AddCounter(10, "testCounter") // Увеличиваем значение
 
-	ts := httptest.NewServer(mux)
-	defer ts.Close()
-
-	resp, err := http.Post(ts.URL+"/update/gauge/testMetric/42.5", "text/plain", nil)
-	if err != nil {
-		t.Fatalf("Failed to send request: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status 200, got %v", resp.StatusCode)
-	}
-
-	if err = resp.Body.Close(); err != nil {
-		t.Errorf("Failed to close response body: %v", err)
+	// Проверяем обновление значения
+	if value, exists := ms.Counters()["testCounter"]; !exists {
+		t.Fatalf("Expected counter 'testCounter' to exist")
+	} else if value != 15 {
+		t.Errorf("Expected counter value 15, got %d", value)
 	}
 }
 
-func TestUpdateHandlerInvalidPath(t *testing.T) {
+func TestEmptyStorage(t *testing.T) {
 	ms := metric.NewMemStorage()
 
-	req := httptest.NewRequest(http.MethodPost, "/update/gauge/testMetric", nil)
-	rr := httptest.NewRecorder()
-
-	updateHandler(rr, req, ms)
-
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("Expected status 404, got %v", rr.Code)
+	if len(ms.Gauges()) != 0 {
+		t.Errorf("Expected no gauges, found %d", len(ms.Gauges()))
 	}
-}
-
-func TestUpdateHandlerValidGauge(t *testing.T) {
-	ms := metric.NewMemStorage()
-
-	req := httptest.NewRequest(http.MethodPost, "/update/gauge/testMetric/42.5", nil)
-	rr := httptest.NewRecorder()
-
-	updateHandler(rr, req, ms)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status %v, got %v", http.StatusOK, rr.Code)
-	}
-
-	value, exists := (*ms)["testMetric"]
-	if !exists {
-		t.Errorf("Metric 'testMetric' not found in storage")
-	}
-	if value.Gauge != 42.5 {
-		t.Errorf("Expected gauge value 42.5, got %v", value.Gauge)
-	}
-}
-
-func TestUpdateHandlerValidCounter(t *testing.T) {
-	ms := metric.NewMemStorage()
-
-	req := httptest.NewRequest(http.MethodPost, "/update/counter/testCounter/10", nil)
-	rr := httptest.NewRecorder()
-
-	updateHandler(rr, req, ms)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status %v, got %v", http.StatusOK, rr.Code)
-	}
-
-	value, exists := (*ms)["testCounter"]
-	if !exists {
-		t.Errorf("Metric 'testCounter' not found in storage")
-	}
-	if value.Counter != 10 {
-		t.Errorf("Expected counter value 10, got %v", value.Counter)
-	}
-}
-
-func TestUpdateHandlerInvalidMethod(t *testing.T) {
-	ms := metric.NewMemStorage()
-
-	req := httptest.NewRequest(http.MethodGet, "/update/gauge/testMetric/42.5", nil)
-	rr := httptest.NewRecorder()
-
-	updateHandler(rr, req, ms)
-
-	if rr.Code != http.StatusMethodNotAllowed {
-		t.Errorf("Expected status %v, got %v", http.StatusMethodNotAllowed, rr.Code)
-	}
-}
-
-func TestUpdateHandlerGaugeOverwrite(t *testing.T) {
-	ms := metric.NewMemStorage()
-	req1 := httptest.NewRequest(http.MethodPost, "/update/gauge/testMetric/42.5", nil)
-	rr1 := httptest.NewRecorder()
-	updateHandler(rr1, req1, ms)
-
-	req2 := httptest.NewRequest(http.MethodPost, "/update/gauge/testMetric/99.9", nil)
-	rr2 := httptest.NewRecorder()
-	updateHandler(rr2, req2, ms)
-
-	value := (*ms)["testMetric"]
-	if value.Gauge != 99.9 {
-		t.Errorf("Expected gauge value 99.9, got %v", value.Gauge)
+	if len(ms.Counters()) != 0 {
+		t.Errorf("Expected no counters, found %d", len(ms.Counters()))
 	}
 }

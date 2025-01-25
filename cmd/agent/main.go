@@ -39,48 +39,44 @@ func main() {
 
 func PostMetrics(metrics map[string]float64, pollCount int64) {
 	baseURL := "http://localhost:8080/update"
-
 	client := &http.Client{}
 
 	for k, v := range metrics {
 		s := strconv.FormatFloat(v, 'f', -1, 64)
 		url := fmt.Sprintf("%s/gauge/%s/%s", baseURL, strings.ToLower(k), s)
 
+		// Логируем метрику перед отправкой
+		log.Printf("Отправка метрики: %s -> %f", k, v)
+
 		r, err := client.Post(url, "text/plain", nil)
 		if err != nil {
-			log.Printf("PostMetrics: Error posting metrics: %s", err.Error())
+			log.Printf("PostMetrics: Ошибка при отправке метрики %s: %s", k, err.Error())
 			continue
 		}
 
 		if r.StatusCode != http.StatusOK {
-			log.Printf("PostMetrics: Server returned non-OK status: %d", r.StatusCode)
+			log.Printf("PostMetrics: Сервер вернул статус: %d", r.StatusCode)
 		}
 
-		fmt.Printf(" - %s - %f \n", k, v)
-
 		if err := r.Body.Close(); err != nil {
-			log.Printf("PostMetrics: Error closing body: %s", err.Error())
+			log.Printf("PostMetrics: Ошибка при закрытии тела ответа: %s", err.Error())
 		}
 	}
 
 	url := fmt.Sprintf("%s/gauge/pollcount/%s", baseURL, strconv.FormatInt(pollCount, 10))
+	log.Printf("Отправка метрики pollCount -> %d", pollCount)
 
 	r, err := client.Post(url, "text/plain", nil)
-
 	if err != nil {
-		log.Printf("PostMetrics: Error posting metrics: %s", err.Error())
+		log.Printf("PostMetrics: Ошибка при отправке pollCount: %s", err.Error())
 	}
 
 	if r.StatusCode != http.StatusOK {
-		log.Printf("PostMetrics: Server returned non-OK status: %d", r.StatusCode)
+		log.Printf("PostMetrics: Сервер вернул статус: %d", r.StatusCode)
 	}
 
-	fmt.Println()
-
-	log.Println("PostMetrics: Success")
-
 	if err := r.Body.Close(); err != nil {
-		log.Printf("PostMetrics: Error closing body: %s", err.Error())
+		log.Printf("PostMetrics: Ошибка при закрытии тела ответа: %s", err.Error())
 	}
 }
 func GetGaugeMetricMaps() map[string]float64 {
@@ -117,6 +113,11 @@ func GetGaugeMetricMaps() map[string]float64 {
 		"Sys":           float64(memStats.Sys),
 		"TotalAlloc":    float64(memStats.TotalAlloc),
 		"RandomValue":   rand.Float64(),
+	}
+
+	log.Println("Собранные метрики:")
+	for key, value := range metrics {
+		log.Printf(" - %s: %.6f", key, value) // Красивый формат с 6 знаками после запятой
 	}
 	return metrics
 }

@@ -1,57 +1,42 @@
 package metric
 
-import "testing"
+import (
+	"testing"
+)
 
-func TestMemoryStorageUpdate(t *testing.T) {
+func TestUpdateGauge(t *testing.T) {
 	ms := NewMemStorage()
-	key := "memoryusage"
 
-	// Обновляем значение gauge
-	ms.UpdateGauge(4.5, key)
+	ms.UpdateGauge(10.5, "testGauge")
+	ms.UpdateGauge(20.2, "testGauge")
 
-	// Проверяем, что ключ существует
-	value, exists := (*ms)[key]
-	if !exists {
-		t.Errorf("Key %s does not exist in MemStorage", key)
-	}
-
-	// Проверяем, что значение gauge обновлено
-	if value.Gauge != 4.5 {
-		t.Errorf("Expected gauge value 4.5, got %v", value.Gauge)
-	}
-
-	// Перезаписываем значение gauge
-	ms.UpdateGauge(7.8, key)
-	value = (*ms)[key]
-	if value.Gauge != 7.8 {
-		t.Errorf("Expected gauge value 7.8 after update, got %v", value.Gauge)
+	if value, exists := ms.gauges["testGauge"]; !exists {
+		t.Fatalf("Expected gauge 'testGauge' to exist")
+	} else if value != 20.2 {
+		t.Errorf("Expected gauge value 20.2, got %f", value)
 	}
 }
 
-func TestMemoryStorageAdd(t *testing.T) {
+func TestAddCounter(t *testing.T) {
 	ms := NewMemStorage()
-	key := "pollcount"
 
-	ms.AddCounter(1, key)
+	ms.AddCounter(5, "testCounter")
+	ms.AddCounter(10, "testCounter")
 
-	value, exists := (*ms)[key]
-	if !exists {
-		t.Errorf("Key %s does not exist in MemStorage", key)
+	if value, exists := ms.counters["testCounter"]; !exists {
+		t.Fatalf("Expected counter 'testCounter' to exist")
+	} else if value != 15 {
+		t.Errorf("Expected counter value 15, got %d", value)
 	}
+}
 
-	if value.Counter != 1 {
-		t.Errorf("Expected counter value 1, got %v", value.Counter)
+func TestEmptyStorage(t *testing.T) {
+	ms := NewMemStorage()
+
+	if len(ms.gauges) != 0 {
+		t.Errorf("Expected no gauges, found %d", len(ms.gauges))
 	}
-
-	ms.AddCounter(1, key)
-	value = (*ms)[key]
-	if value.Counter != 2 {
-		t.Errorf("Expected counter value 2, got %v", value.Counter)
-	}
-
-	ms.AddCounter(5, key)
-	value = (*ms)[key]
-	if value.Counter != 7 {
-		t.Errorf("Expected counter value 7, got %v", value.Counter)
+	if len(ms.counters) != 0 {
+		t.Errorf("Expected no counters, found %d", len(ms.counters))
 	}
 }
