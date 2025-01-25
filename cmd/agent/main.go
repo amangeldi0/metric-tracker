@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/amangeldi0/metric-tracker/internal/config"
+	"github.com/go-resty/resty/v2"
 	"log"
 	"math/rand"
-	"net/http"
 	"reflect"
 	"runtime"
 	"time"
@@ -16,6 +16,12 @@ var (
 	reportInterval = 10 * time.Second
 	counter        int64
 )
+
+type MyApiError struct {
+	Code      int       `json:"code"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+}
 
 func main() {
 	var metrics []Metric
@@ -36,29 +42,27 @@ func main() {
 
 func reportMetrics(metrics []Metric) error {
 
+	client := resty.New()
 	cfg := config.New()
+
+	var responseErr MyApiError
 
 	url := fmt.Sprintf("%s://%s:%d/metrics", cfg.Server.Protocol, cfg.Server.Host, cfg.Server.Port)
 
 	for _, m := range metrics {
-		client := &http.Client{}
 		endpoint := fmt.Sprintf("%s/%s/%s/%v", url, m.Type, m.Name, m.Value)
 
-		req, err := http.NewRequest(http.MethodPost, endpoint, nil)
+		res, err := client.R().
+			SetError(&responseErr).
+			Post(endpoint)
+
 		if err != nil {
+			fmt.Println(responseErr)
 			return err
 		}
 
-		req.Header.Add("Content-Type", "text/plain")
-		res, err := client.Do(req)
-		if err != nil {
-			return err
-		}
+		res.Header().Add("Content-Type", "text/plain")
 
-		err = res.Body.Close()
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
