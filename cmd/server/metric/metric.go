@@ -121,6 +121,6 @@ func (ms *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Успешно обновлен gauge: %s -> %f", metricName, value)
 	}
 
+	w.Header().Add("Content-Type", "text-plain")
 	w.WriteHeader(http.StatusOK)
-	log.Println("Запрос обработан успешно")
 }
