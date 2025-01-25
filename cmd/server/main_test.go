@@ -28,6 +28,8 @@ func TestMainServer(t *testing.T) {
 		t.Fatalf("Сервер не запустился: %s", err)
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusMethodNotAllowed {
 		t.Fatalf("Ожидался код %d, но получили %d", http.StatusMethodNotAllowed, resp.StatusCode)
 	}
