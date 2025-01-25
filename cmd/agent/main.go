@@ -17,7 +17,7 @@ var (
 	counter        int64
 )
 
-type MyApiError struct {
+type MyAPIError struct {
 	Code      int       `json:"code"`
 	Message   string    `json:"message"`
 	Timestamp time.Time `json:"timestamp"`
@@ -45,7 +45,7 @@ func reportMetrics(metrics []Metric) error {
 	client := resty.New()
 	cfg := config.New()
 
-	var responseErr MyApiError
+	var responseErr MyAPIError
 
 	url := fmt.Sprintf("%s://%s:%d/metrics", cfg.Server.Protocol, cfg.Server.Host, cfg.Server.Port)
 
