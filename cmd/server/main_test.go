@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/amangeldi0/metric-tracker/cmd/server/metricsapi"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,19 +11,16 @@ import (
 )
 
 func TestMainServer(t *testing.T) {
-	// Создаем новую конфигурацию
 	ms := metricsapi.New()
 
-	// Создаем HTTP-сервер с тестовым маршрутом
-	mux := http.NewServeMux()
-	mux.HandleFunc("/update/", ms.UpdateHandler)
+	r := chi.NewRouter()
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateHandler)
 
-	server := httptest.NewServer(mux)
+	server := httptest.NewServer(r)
 	defer server.Close()
 
-	// Проверяем, что сервер доступен по адресу
 	client := &http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get(fmt.Sprintf("%s/update/", server.URL))
+	resp, err := client.Get(fmt.Sprintf("%s/update/counter/test_metric/10", server.URL))
 
 	if err != nil {
 		t.Fatalf("Сервер не запустился: %s", err)
