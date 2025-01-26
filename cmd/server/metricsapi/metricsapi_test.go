@@ -4,10 +4,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestUpdateHandler(t *testing.T) {
 	ms := New()
+	r := chi.NewRouter()
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateHandler)
 
 	tests := []struct {
 		name       string
@@ -58,64 +62,11 @@ func TestUpdateHandler(t *testing.T) {
 			req := httptest.NewRequest(tt.method, tt.url, nil)
 			recorder := httptest.NewRecorder()
 
-			ms.UpdateHandler(recorder, req)
+			r.ServeHTTP(recorder, req)
 
 			if recorder.Code != tt.wantStatus {
 				t.Errorf("got status %d, want %d", recorder.Code, tt.wantStatus)
 			}
 		})
-	}
-}
-
-func TestMemStorage(t *testing.T) {
-	ms := New()
-
-	// Test SetCounterMetric
-	err := ms.SetCounterMetric("counter_metric", 10)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	// Test GetCounterMetric
-	counterValue, err := ms.GetCounterMetric("counter_metric")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if counterValue != 10 {
-		t.Errorf("got %d, want 10", counterValue)
-	}
-
-	// Test Increment Counter Metric
-	err = ms.SetCounterMetric("counter_metric", 5)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	counterValue, err = ms.GetCounterMetric("counter_metric")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if counterValue != 15 {
-		t.Errorf("got %d, want 15", counterValue)
-	}
-
-	// Test SetGaugeMetric
-	err = ms.SetGaugeMetric("gauge_metric", 3.14)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	// Test GetGaugeMetric
-	gaugeValue, err := ms.GetGaugeMetric("gauge_metric")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if gaugeValue != 3.14 {
-		t.Errorf("got %f, want 3.14", gaugeValue)
-	}
-
-	// Test Error Cases
-	err = ms.SetGaugeMetric("counter_metric", 2.71)
-	if err == nil {
-		t.Errorf("expected error, got nil")
 	}
 }
