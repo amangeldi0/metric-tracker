@@ -42,6 +42,10 @@ func (ms *MemStorage) SetCounterMetric(key string, value int64) error {
 	return nil
 }
 
+func (ms *MemStorage) GetAll() map[string]interface{} {
+	return ms.data
+}
+
 func (ms *MemStorage) SetGaugeMetric(key string, value float64) error {
 	currentValue := ms.data[key]
 	if reflect.TypeOf(currentValue) == reflect.TypeOf(int64(0)) {

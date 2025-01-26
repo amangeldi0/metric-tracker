@@ -2,33 +2,17 @@ package metricsapi
 
 import (
 	"errors"
+	"fmt"
+	"github.com/go-chi/chi/v5"
+	"io"
 	"net/http"
-	"strings"
 )
 
 func (ms *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not alowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	path := r.URL.Path
-	pathParts := strings.Split(path, "/")
-
-	if len(pathParts) != 5 {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-
-	metricType := pathParts[2]
-	metricName := pathParts[3]
-	metricValue := pathParts[4]
-
-	if metricName == "" {
-		http.Error(w, "metric name not found ", http.StatusNotFound)
-		return
-	}
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
 
 	if err := ms.Save(metricType, metricName, metricValue); err != nil {
 		if errors.Is(err, ErrInvalidMetricType) {
@@ -44,4 +28,67 @@ func (ms *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "text-plain")
 	w.WriteHeader(http.StatusOK)
+}
+
+func (ms *MemStorage) GetHandler(w http.ResponseWriter, r *http.Request) {
+
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+
+	if metricType != TypeGauge && metricType != TypeCounter {
+		http.Error(w, "invalid metric type", http.StatusBadRequest)
+	}
+
+	var res string
+
+	_, v, err := ms.retrieve(metricType, metricName)
+
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			http.Error(w, "not found", http.StatusNotFound)
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	if metricType == TypeCounter {
+		res = fmt.Sprintf("%d", v)
+	} else if metricType == TypeGauge {
+		res = fmt.Sprintf("%.3f", v)
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	_, err = io.WriteString(w, res)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (ms *MemStorage) GetAllHandler(w http.ResponseWriter, r *http.Request) {
+	var result string
+	metrics := ms.GetAll()
+
+	for key, v := range metrics {
+		result += fmt.Sprintf("%v: %v\n", key, v)
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+
+	_, err := io.WriteString(w, result)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (ms *MemStorage) retrieve(metricType, metricName string) (string, interface{}, error) {
+	if metricType == TypeCounter {
+		value, err := ms.GetCounterMetric(metricName)
+		return metricType, value, err
+	} else if metricType == TypeGauge {
+		value, err := ms.GetGaugeMetric(metricName)
+		return metricType, value, err
+	}
+	return "", nil, ErrInvalidMetricType
 }
