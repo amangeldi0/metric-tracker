@@ -54,7 +54,7 @@ func (ms *MemStorage) GetHandler(w http.ResponseWriter, r *http.Request) {
 	if metricType == TypeCounter {
 		res = fmt.Sprintf("%d", v)
 	} else if metricType == TypeGauge {
-		res = fmt.Sprintf("%.3f", v)
+		res = fmt.Sprintf("%g", v)
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
