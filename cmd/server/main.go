@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/amangeldi0/metric-tracker/cmd/server/metricsapi"
 	"github.com/amangeldi0/metric-tracker/internal/config"
@@ -19,10 +20,13 @@ func main() {
 	cMux.Get("/value/{metricType}/{metricName}", ms.GetHandler)
 	cMux.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateHandler)
 
-	sAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	log.Printf("server started on %s", sAddr)
+	defaultAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
-	err := http.ListenAndServe(sAddr, cMux)
+	sAddr := flag.String("a", defaultAddr, "input server address ex: localhost:8080")
+
+	flag.Parse()
+	log.Printf("server started on %s", *sAddr)
+	err := http.ListenAndServe(*sAddr, cMux)
 
 	if err != nil {
 		log.Panic(err)

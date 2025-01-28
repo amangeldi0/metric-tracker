@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/amangeldi0/metric-tracker/internal/config"
 	"log"
@@ -12,34 +13,39 @@ import (
 )
 
 var (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-	counter        int64
+	counter int64
 )
 
 func main() {
 	var metrics []Metric
+
+	cfg := config.New()
+
+	defaultAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+	sAddr := flag.String("a", defaultAddr, "input agent address ex: localhost:8080")
+
+	pollInterval := flag.Duration("p", 2*time.Second, "input pollInterval")
+	reportInterval := flag.Duration("r", 10*time.Second, "input pollInterval report interval")
+
+	flag.Parse()
+
 	go func() {
 		for {
 			metrics = updateMetrics()
-			time.Sleep(pollInterval)
+			time.Sleep(*pollInterval)
 		}
 	}()
 	for {
-		err := reportMetrics(metrics)
+		err := reportMetrics(metrics, *sAddr)
 		fmt.Println("Metrics reported:")
 		if err != nil {
 			log.Fatal(err)
 		}
-		time.Sleep(reportInterval)
+		time.Sleep(*reportInterval)
 	}
 }
 
-func reportMetrics(metrics []Metric) error {
-
-	cfg := config.New()
-
-	url := fmt.Sprintf("%s://%s:%d/metrics", cfg.Server.Protocol, cfg.Server.Host, cfg.Server.Port)
+func reportMetrics(metrics []Metric, url string) error {
 
 	for _, m := range metrics {
 		client := &http.Client{}
