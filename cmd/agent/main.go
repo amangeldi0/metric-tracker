@@ -24,15 +24,22 @@ func main() {
 	defaultAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	sAddr := flag.String("a", defaultAddr, "input agent address ex: localhost:8080")
 
-	pollInterval := flag.Duration("p", 2*time.Second, "input pollInterval")
-	reportInterval := flag.Duration("r", 10*time.Second, "input pollInterval report interval")
+	pollIntervalSeconds := flag.Int("p", 2, "input pollInterval in seconds")
+	reportIntervalSeconds := flag.Int("r", 10, "input reportInterval in seconds")
 
 	flag.Parse()
+
+	if len(flag.Args()) > 0 {
+		log.Fatalf("unknown flags: %v", flag.Args())
+	}
+
+	pollInterval := time.Duration(*pollIntervalSeconds) * time.Second
+	reportInterval := time.Duration(*reportIntervalSeconds) * time.Second
 
 	go func() {
 		for {
 			metrics = updateMetrics()
-			time.Sleep(*pollInterval)
+			time.Sleep(pollInterval)
 		}
 	}()
 	for {
@@ -41,7 +48,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		time.Sleep(*reportInterval)
+		time.Sleep(reportInterval)
 	}
 }
 
