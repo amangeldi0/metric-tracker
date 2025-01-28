@@ -22,7 +22,7 @@ func main() {
 
 	defaultAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
-	sAddr := flag.String("a", defaultAddr, "input server address ex: localhost:8080")
+	sAddr := flag.String("a", defaultAddr, "input  address ex: localhost:8080")
 
 	flag.Parse()
 	log.Printf("server started on %s", *sAddr)

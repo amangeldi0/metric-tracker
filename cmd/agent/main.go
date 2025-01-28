@@ -49,7 +49,7 @@ func reportMetrics(metrics []Metric, url string) error {
 
 	for _, m := range metrics {
 		client := &http.Client{}
-		endpoint := fmt.Sprintf("%s/%s/%s/%v", url, m.Type, m.Name, m.Value)
+		endpoint := fmt.Sprintf("http://%s/%s/%s/%v", url, m.Type, m.Name, m.Value)
 
 		req, err := http.NewRequest(http.MethodPost, endpoint, nil)
 		if err != nil {
