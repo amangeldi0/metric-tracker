@@ -33,6 +33,8 @@ func getStartArguments() (string, time.Duration, time.Duration) {
 		return envCfg.Addr, envCfg.PollInterval, envCfg.ReportInterval
 	}
 
+	flag.Parse()
+
 	return *sAddr,
 		time.Duration(*pollIntervalSeconds) * time.Second,
 		time.Duration(*reportIntervalSeconds) * time.Second
