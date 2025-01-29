@@ -4,7 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/amangeldi0/metric-tracker/internal/config"
-	"github.com/caarlos0/env/v6"
+	"github.com/caarlos0/env/v11"
+	"log"
 	"time"
 )
 
@@ -27,11 +28,13 @@ func getStartArguments() (string, time.Duration, time.Duration) {
 	reportIntervalSeconds := flag.Int("r", 10, "input reportInterval in seconds")
 
 	if err != nil {
-		return *sAddr,
-			time.Duration(*pollIntervalSeconds) * time.Second,
-			time.Duration(*reportIntervalSeconds) * time.Second
+		log.Print("failed to parse")
+	} else if envCfg.Addr != "" {
+		return envCfg.Addr, envCfg.PollInterval, envCfg.ReportInterval
 	}
 
-	return envCfg.Addr, envCfg.PollInterval, envCfg.ReportInterval
+	return *sAddr,
+		time.Duration(*pollIntervalSeconds) * time.Second,
+		time.Duration(*reportIntervalSeconds) * time.Second
 
 }
