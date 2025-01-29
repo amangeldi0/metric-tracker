@@ -12,7 +12,7 @@ import (
 )
 
 type EnvConfig struct {
-	addr string `env:"ADDRESS"`
+	Address string `env:"ADDRESS"`
 }
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 	if err != nil {
 		addr = *flag.String("a", defaultAddr, "input address ex: localhost:8080")
 	} else {
-		addr = envCfg.addr
+		addr = envCfg.Address
 	}
 
 	cMux.Get("/", ms.GetAllHandler)
