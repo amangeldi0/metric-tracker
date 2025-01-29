@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -17,7 +18,18 @@ var (
 func main() {
 	var metrics []Metric
 
-	addr, pollInterval, reportInterval := getStartArguments()
+	Load()
+
+	if err := Parse(); err != nil {
+		panic(err)
+	}
+
+	if len(flag.Args()) > 0 {
+		log.Fatalf("unknown flags: %v", flag.Args())
+	}
+
+	pollInterval := time.Duration(Config.PollInterval) * time.Second
+	reportInterval := time.Duration(Config.ReportInterval) * time.Second
 
 	go func() {
 		for {
@@ -26,7 +38,7 @@ func main() {
 		}
 	}()
 	for {
-		err := reportMetrics(metrics, addr)
+		err := reportMetrics(metrics, Config.Address)
 		fmt.Println("Metrics reported:")
 		if err != nil {
 			log.Fatal(err)

@@ -2,41 +2,23 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"github.com/amangeldi0/metric-tracker/internal/config"
 	"github.com/caarlos0/env/v11"
-	"log"
-	"time"
 )
 
-type EnvConfig struct {
-	Addr           string        `env:"ADDRESS"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	PollInterval   time.Duration `env:"POLL_INTERVAL"`
+var Config struct {
+	Address        string `env:"ADDRESS"`
+	ReportInterval int    `env:"REPORT_INTERVAL"`
+	PollInterval   int    `env:"POLL_INTERVAL"`
 }
 
-func getStartArguments() (string, time.Duration, time.Duration) {
-	cfg := config.New()
+func Load() {
+	flag.StringVar(&Config.Address, "a", "localhost:8080", "server address")
+	flag.IntVar(&Config.ReportInterval, "r", 10, "report interval")
+	flag.IntVar(&Config.PollInterval, "p", 2, "poll interval")
+}
 
-	defaultAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-
-	var envCfg EnvConfig
-	err := env.Parse(&envCfg)
-
-	sAddr := flag.String("a", defaultAddr, "input agent address ex: localhost:8080")
-	pollIntervalSeconds := flag.Int("p", 2, "input pollInterval in seconds")
-	reportIntervalSeconds := flag.Int("r", 10, "input reportInterval in seconds")
-
-	if err != nil {
-		log.Print("failed to parse")
-	} else if envCfg.Addr != "" {
-		return envCfg.Addr, envCfg.PollInterval, envCfg.ReportInterval
-	}
-
+func Parse() error {
 	flag.Parse()
 
-	return *sAddr,
-		time.Duration(*pollIntervalSeconds) * time.Second,
-		time.Duration(*reportIntervalSeconds) * time.Second
-
+	return env.Parse(&Config)
 }
