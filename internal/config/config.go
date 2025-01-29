@@ -11,8 +11,6 @@ type Config struct {
 }
 
 func New() *Config {
-	// Configuring basic server
-	// Will be upgrade in future
 
 	return &Config{
 		Server: server{

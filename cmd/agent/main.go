@@ -1,9 +1,7 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"github.com/amangeldi0/metric-tracker/internal/config"
 	"log"
 	"math/rand"
 	"net/http"
@@ -19,22 +17,7 @@ var (
 func main() {
 	var metrics []Metric
 
-	cfg := config.New()
-
-	defaultAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	sAddr := flag.String("a", defaultAddr, "input agent address ex: localhost:8080")
-
-	pollIntervalSeconds := flag.Int("p", 2, "input pollInterval in seconds")
-	reportIntervalSeconds := flag.Int("r", 10, "input reportInterval in seconds")
-
-	flag.Parse()
-
-	if len(flag.Args()) > 0 {
-		log.Fatalf("unknown flags: %v", flag.Args())
-	}
-
-	pollInterval := time.Duration(*pollIntervalSeconds) * time.Second
-	reportInterval := time.Duration(*reportIntervalSeconds) * time.Second
+	addr, pollInterval, reportInterval := getStartArguments()
 
 	go func() {
 		for {
@@ -43,7 +26,7 @@ func main() {
 		}
 	}()
 	for {
-		err := reportMetrics(metrics, *sAddr)
+		err := reportMetrics(metrics, addr)
 		fmt.Println("Metrics reported:")
 		if err != nil {
 			log.Fatal(err)
