@@ -24,10 +24,16 @@ func main() {
 
 	err := env.Parse(&envCfg)
 
+	if err != nil {
+		log.Printf("failed to parse env vars: %v", err)
+	} else {
+		log.Printf("parsed env vars: %+v", envCfg)
+	}
+
 	var addr string
 	defaultAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
-	if err != nil {
+	if envCfg.Address == "" {
 		addr = *flag.String("a", defaultAddr, "input address ex: localhost:8080")
 	} else {
 		addr = envCfg.Address
