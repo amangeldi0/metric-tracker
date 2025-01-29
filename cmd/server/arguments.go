@@ -6,15 +6,11 @@ import (
 )
 
 var Config struct {
-	Address        string `env:"ADDRESS"`
-	ReportInterval int    `env:"REPORT_INTERVAL"`
-	PollInterval   int    `env:"POLL_INTERVAL"`
+	Address string `env:"ADDRESS"`
 }
 
 func LoadConfig() {
 	flag.StringVar(&Config.Address, "a", "localhost:8080", "server address")
-	flag.IntVar(&Config.ReportInterval, "r", 10, "report interval")
-	flag.IntVar(&Config.PollInterval, "p", 2, "poll interval")
 }
 
 func ParseConfig() error {

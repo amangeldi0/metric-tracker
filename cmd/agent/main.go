@@ -18,9 +18,9 @@ var (
 func main() {
 	var metrics []Metric
 
-	Load()
+	LoadConfig()
 
-	if err := Parse(); err != nil {
+	if err := ParseConfig(); err != nil {
 		panic(err)
 	}
 
