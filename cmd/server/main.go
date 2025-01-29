@@ -28,10 +28,10 @@ func main() {
 	defaultAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
 	if err != nil {
-		addr = *flag.String("a", defaultAddr, "input  address ex: localhost:8080")
+		addr = *flag.String("a", defaultAddr, "input address ex: localhost:8080")
+	} else {
+		addr = envCfg.addr
 	}
-
-	addr = envCfg.addr
 
 	cMux.Get("/", ms.GetAllHandler)
 	cMux.Get("/value/{metricType}/{metricName}", ms.GetHandler)
