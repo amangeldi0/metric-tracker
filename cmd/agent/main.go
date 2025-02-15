@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/amangeldi0/metric-tracker/internal/config"
 	"log"
 	"math/rand"
 	"net/http"
@@ -18,18 +19,18 @@ var (
 func main() {
 	var metrics []Metric
 
-	LoadConfig()
+	cfg, err := config.New()
 
-	if err := ParseConfig(); err != nil {
-		panic(err)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	if len(flag.Args()) > 0 {
 		log.Fatalf("unknown flags: %v", flag.Args())
 	}
 
-	pollInterval := time.Duration(Config.PollInterval) * time.Second
-	reportInterval := time.Duration(Config.ReportInterval) * time.Second
+	pollInterval := time.Duration(cfg.PollInterval) * time.Second
+	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
 
 	go func() {
 		for {
@@ -38,7 +39,7 @@ func main() {
 		}
 	}()
 	for {
-		err := reportMetrics(metrics, Config.Address)
+		err := reportMetrics(metrics, cfg.Address)
 		fmt.Println("Metrics reported:")
 		if err != nil {
 			log.Fatal(err)
