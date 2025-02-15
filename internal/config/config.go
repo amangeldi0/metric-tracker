@@ -1,22 +1,37 @@
 package config
 
-type server struct {
-	Port     int
-	Host     string
-	Protocol string
-}
+import (
+	"flag"
+	"github.com/caarlos0/env/v11"
+)
 
 type Config struct {
-	Server server
+	Address        string `env:"ADDRESS"`
+	ReportInterval int    `env:"REPORT_INTERVAL"`
+	PollInterval   int    `env:"POLL_INTERVAL"`
 }
 
-func New() *Config {
+var (
+	ReportInterval = 10
+	PollInterval   = 2
+	DefaultAddress = "localhost:8080"
+)
 
-	return &Config{
-		Server: server{
-			Port:     8080,
-			Host:     "localhost",
-			Protocol: "http",
-		},
+func New() (*Config, error) {
+
+	var config Config
+
+	flag.StringVar(&config.Address, "a", DefaultAddress, "server address")
+	flag.IntVar(&config.ReportInterval, "r", ReportInterval, "report interval")
+	flag.IntVar(&config.PollInterval, "p", PollInterval, "poll interval")
+
+	flag.Parse()
+
+	err := env.Parse(&config)
+
+	if err != nil {
+		return nil, err
 	}
+
+	return &config, nil
 }
