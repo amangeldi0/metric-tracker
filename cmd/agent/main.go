@@ -4,9 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/amangeldi0/metric-tracker/internal/config"
-	"github.com/amangeldi0/metric-tracker/internal/lib/logger"
+	logger2 "github.com/amangeldi0/metric-tracker/internal/lib/logger"
 	"github.com/amangeldi0/metric-tracker/internal/metricsapi"
 	"go.uber.org/zap"
+	"log"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -20,13 +21,17 @@ var (
 
 func main() {
 
-	log, err := logger.New(zap.InfoLevel, "agent")
+	logger, err := logger2.New(zap.InfoLevel, "agent")
 
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
 	cfg, err := config.New()
+
+	if err != nil {
+		logger.Info("Failed to create config", zap.Error(err))
+	}
 
 	if len(flag.Args()) > 0 {
 		log.Fatal("unknown flags", zap.Any("flags", flag.Args()))
@@ -44,10 +49,10 @@ func main() {
 	}()
 	for {
 		err = reportMetrics(metrics, cfg.Address)
-		log.Info("reported metrichandlers", zap.Any("metrichandlers", metrics))
+		logger.Info("reported metrichandlers", zap.Any("metrichandlers", metrics))
 
 		if err != nil {
-			log.Error("failed to report metrichandlers", zap.Error(err))
+			logger.Error("failed to report metrichandlers", zap.Error(err))
 		}
 
 		time.Sleep(reportInterval)
