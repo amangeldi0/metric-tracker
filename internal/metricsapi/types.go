@@ -1,4 +1,9 @@
-package main
+package metricsapi
+
+import (
+	"errors"
+	"go.uber.org/zap"
+)
 
 var (
 	GaugeMetrics = []string{
@@ -37,4 +42,21 @@ type Metric struct {
 	Name  string
 	Type  string
 	Value interface{}
+}
+
+var (
+	ErrInvalidMetricValue = errors.New("invalid metric value")
+	ErrInvalidMetricType  = errors.New("invalid metric type")
+	ErrNotFound           = errors.New("value not found")
+	ErrCannotAssign       = errors.New("cannot assign value, key is already in use by another metric type")
+)
+
+const (
+	TypeCounter = "counter"
+	TypeGauge   = "gauge"
+)
+
+type MemStorage struct {
+	data   map[string]interface{}
+	logger *zap.Logger
 }

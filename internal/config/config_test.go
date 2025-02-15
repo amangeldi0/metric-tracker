@@ -1,21 +1,14 @@
 package config
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestNewConfig(t *testing.T) {
-	cfg := New()
+	cfg, err := New()
 
-	if cfg.Server.Port != 8080 {
-		t.Errorf("expected port 8080, got %d", cfg.Server.Port)
-	}
+	assert.NoError(t, err)
 
-	if cfg.Server.Host != "localhost" {
-		t.Errorf("expected host 'localhost', got %s", cfg.Server.Host)
-	}
-
-	if cfg.Server.Protocol != "http" {
-		t.Errorf("expected protocol 'http', got %s", cfg.Server.Protocol)
-	}
+	assert.Equal(t, "localhost:8080", cfg.Address, "want localhost:8080 got", cfg.Address)
 }

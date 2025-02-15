@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/amangeldi0/metric-tracker/internal/config"
-	"log"
+	"github.com/amangeldi0/metric-tracker/internal/lib/logger"
+	"github.com/amangeldi0/metric-tracker/internal/metricsapi"
+	"go.uber.org/zap"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -17,18 +19,20 @@ var (
 )
 
 func main() {
-	var metrics []Metric
+
+	log, err := logger.New(zap.InfoLevel, "agent")
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
 	cfg, err := config.New()
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	if len(flag.Args()) > 0 {
-		log.Fatalf("unknown flags: %v", flag.Args())
+		log.Fatal("unknown flags", zap.Any("flags", flag.Args()))
 	}
 
+	var metrics []metricsapi.Metric
 	pollInterval := time.Duration(cfg.PollInterval) * time.Second
 	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
 
@@ -39,16 +43,18 @@ func main() {
 		}
 	}()
 	for {
-		err := reportMetrics(metrics, cfg.Address)
-		fmt.Println("Metrics reported:")
+		err = reportMetrics(metrics, cfg.Address)
+		log.Info("reported metrichandlers", zap.Any("metrichandlers", metrics))
+
 		if err != nil {
-			log.Fatal(err)
+			log.Error("failed to report metrichandlers", zap.Error(err))
 		}
+
 		time.Sleep(reportInterval)
 	}
 }
 
-func reportMetrics(metrics []Metric, url string) error {
+func reportMetrics(metrics []metricsapi.Metric, url string) error {
 
 	for _, m := range metrics {
 		client := &http.Client{}
@@ -73,26 +79,26 @@ func reportMetrics(metrics []Metric, url string) error {
 	return nil
 }
 
-func updateMetrics() []Metric {
-	var metrics []Metric
+func updateMetrics() []metricsapi.Metric {
+	var metrics []metricsapi.Metric
 	var MemStats runtime.MemStats
 
 	runtime.ReadMemStats(&MemStats)
 	msValue := reflect.ValueOf(MemStats)
 	msType := msValue.Type()
 
-	for _, metric := range GaugeMetrics {
+	for _, metric := range metricsapi.GaugeMetrics {
 		field, ok := msType.FieldByName(metric)
 		if !ok {
 			continue
 		}
 		value := msValue.FieldByName(metric)
-		metrics = append(metrics, Metric{Name: field.Name, Type: "gauge", Value: value})
+		metrics = append(metrics, metricsapi.Metric{Name: field.Name, Type: "gauge", Value: value})
 	}
 
 	counter += 1
-	metrics = append(metrics, Metric{Name: "RandomValue", Type: "gauge", Value: rand.Float64()})
-	metrics = append(metrics, Metric{Name: "PollCounter", Type: "counter", Value: counter})
+	metrics = append(metrics, metricsapi.Metric{Name: "RandomValue", Type: "gauge", Value: rand.Float64()})
+	metrics = append(metrics, metricsapi.Metric{Name: "PollCounter", Type: "counter", Value: counter})
 
 	return metrics
 }

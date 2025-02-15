@@ -1,32 +1,50 @@
 package main
 
 import (
-	"flag"
-	"github.com/amangeldi0/metric-tracker/cmd/server/metricsapi"
+	"fmt"
 	"github.com/amangeldi0/metric-tracker/internal/config"
+	liblogger "github.com/amangeldi0/metric-tracker/internal/lib/logger"
+	"github.com/amangeldi0/metric-tracker/internal/metricsapi"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 )
 
-func main() {
-	cMux := chi.NewMux()
-	ms := metricsapi.New()
-	cfg, err := config.New()
-
+func run() error {
+	logger, err := liblogger.New(zap.InfoLevel, "agent")
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
-	cMux.Get("/", ms.GetAllHandler)
-	cMux.Get("/value/{metricType}/{metricName}", ms.GetHandler)
-	cMux.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateHandler)
-
-	flag.Parse()
-	log.Printf("server started on %s", cfg.Address)
-	err = http.ListenAndServe(cfg.Address, cMux)
-
+	cfg, err := config.New()
 	if err != nil {
-		log.Panic(err)
+		logger.Fatal("error loading config", zap.Error(err))
+	}
+
+	ms := metricsapi.New(logger)
+
+	router := chi.NewRouter()
+	sugar := logger.Sugar()
+
+	router.Use(liblogger.WithLogging(sugar))
+
+	router.Get("/", ms.GetAllHandler)
+	router.Get("/value/{metricType}/{metricName}", ms.GetHandler)
+	router.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateHandler)
+
+	srv := &http.Server{
+		Addr:    cfg.Address,
+		Handler: router,
+	}
+
+	logger.Info("server started", zap.String("address", cfg.Address))
+
+	return srv.ListenAndServe()
+}
+
+func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
 	}
 }

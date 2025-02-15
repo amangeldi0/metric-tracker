@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/amangeldi0/metric-tracker/internal/metricsapi"
 	"reflect"
 	"runtime"
 	"testing"
@@ -10,7 +11,7 @@ func TestUpdateMetrics(t *testing.T) {
 	metrics := updateMetrics()
 
 	if len(metrics) == 0 {
-		t.Errorf("expected non-empty metrics, got %d", len(metrics))
+		t.Errorf("expected non-empty metrichandlers, got %d", len(metrics))
 	}
 
 	found := false
@@ -32,7 +33,7 @@ func TestGaugeMetricsIntegrity(t *testing.T) {
 	msValue := reflect.ValueOf(MemStats)
 	msType := msValue.Type()
 
-	for _, metric := range GaugeMetrics {
+	for _, metric := range metricsapi.GaugeMetrics {
 		_, ok := msType.FieldByName(metric)
 		if !ok {
 			if metric == "RandomValue" {

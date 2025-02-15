@@ -16,12 +16,9 @@ func (ms *MemStorage) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := ms.Save(metricType, metricName, metricValue); err != nil {
 		if errors.Is(err, ErrInvalidMetricType) {
-			// log.Printf("Type:%s, Name: %s, Value:%s; gets error: %q", metricType, metricName, metricValue, service.ErrInavlidMetricType)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		} else if errors.Is(err, ErrInvalidMetricValue) {
-			// log.Printf("Type:%s, Name: %s, Value:%s; gets error: %q", metricType, metricName, metricValue, service.ErrInvalidMetricValue)
-
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -87,6 +84,7 @@ func (ms *MemStorage) retrieve(metricType, metricName string) (string, interface
 		value, err := ms.GetCounterMetric(metricName)
 		return metricType, value, err
 	} else if metricType == TypeGauge {
+
 		value, err := ms.GetGaugeMetric(metricName)
 		return metricType, value, err
 	}
