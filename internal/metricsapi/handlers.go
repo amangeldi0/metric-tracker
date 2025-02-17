@@ -4,78 +4,55 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 )
 
 func (ms *MemStorage) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
 
-	var req Metrics
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
-	}
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
 
-	if req.MType != TypeGauge && req.MType != TypeCounter {
-		http.Error(w, "invalid metric type", http.StatusBadRequest)
-		return
-	}
-
-	if req.MType == TypeCounter {
-		if req.Delta == nil {
-			http.Error(w, "missing delta for counter", http.StatusBadRequest)
-			return
-		}
-		err := ms.SetCounterMetric(req.ID, *req.Delta)
-
-		if err != nil {
+	if err := ms.Save(metricType, metricName, metricValue); err != nil {
+		if errors.Is(err, ErrInvalidMetricType) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
-		}
-
-	} else if req.MType == TypeGauge {
-		if req.Value == nil {
-			http.Error(w, "missing value for gauge", http.StatusBadRequest)
-			return
-		}
-		err := ms.SetGaugeMetric(req.ID, *req.Value)
-
-		if err != nil {
+		} else if errors.Is(err, ErrInvalidMetricValue) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
 
-	_, v, err := ms.retrieve(req.MType, req.ID)
+	_, v, err := ms.retrieve(metricType, metricName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	resp := Metrics{
-		ID:    req.ID,
-		MType: req.MType,
+		ID:    metricName,
+		MType: metricType,
 	}
-	if req.MType == TypeCounter {
+
+	if resp.MType == TypeCounter {
 		val := v.(int64)
 		resp.Delta = &val
-	} else if req.MType == TypeGauge {
+	} else if resp.MType == TypeGauge {
 		val := v.(float64)
 		resp.Value = &val
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
+
+	if err = json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (ms *MemStorage) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		http.Error(w, "invalid content type", http.StatusUnsupportedMediaType)
-		return
-	}
 
 	var req Metrics
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -102,6 +79,7 @@ func (ms *MemStorage) GetMetricHandler(w http.ResponseWriter, r *http.Request) {
 		ID:    req.ID,
 		MType: req.MType,
 	}
+
 	if req.MType == TypeCounter {
 		val := v.(int64)
 		resp.Delta = &val
