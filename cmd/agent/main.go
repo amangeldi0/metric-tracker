@@ -2,18 +2,23 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	metricsapi "github.com/amangeldi0/metric-tracker/api/metrics"
 	"github.com/amangeldi0/metric-tracker/internal/config"
 	logger2 "github.com/amangeldi0/metric-tracker/internal/lib/logger"
-	"github.com/amangeldi0/metric-tracker/internal/metricsapi"
 	"go.uber.org/zap"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"os/signal"
 	"reflect"
 	"runtime"
+	"sync"
+	"syscall"
 	"time"
 )
 
@@ -39,65 +44,106 @@ func main() {
 		log.Fatal("unknown flags", zap.Any("flags", flag.Args()))
 	}
 
-	var metrics []metricsapi.Metrics
-	pollInterval := time.Duration(cfg.PollInterval) * time.Second
-	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
+	var metrics []metricsapi.Metric
+	pollInterval := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
+	reportInterval := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 
-	go func() {
-		for {
-			metrics = updateMetrics()
-			time.Sleep(pollInterval)
-		}
-	}()
+	client := &http.Client{
+		Timeout: time.Minute,
+	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
+
 	for {
-		err = reportMetrics(metrics, cfg.Address)
-		logger.Info("reported metrichandlers", zap.Any("metrichandlers", metrics))
+		select {
 
-		if err != nil {
-			logger.Error("failed to report metrichandlers", zap.Error(err))
+		case <-pollInterval.C:
+			metrics = updateMetrics()
+			logger.Info("Updated metrics", zap.Any("metrics", metrics))
+
+		case <-reportInterval.C:
+			if err = reportMetrics(ctx, client, cfg.Address, metrics); err != nil {
+				logger.Error("error sending metrics", zap.Error(err))
+			} else {
+				logger.Info("metrics send")
+			}
+
+		case <-ctx.Done():
+			logger.Info("shutting down agent...")
+			pollInterval.Stop()
+			reportInterval.Stop()
+			os.Exit(0)
 		}
-
-		time.Sleep(reportInterval)
 	}
 }
 
-func reportMetrics(metrics []metricsapi.Metrics, url string) error {
+func reportMetrics(ctx context.Context, client *http.Client, host string, metrics []metricsapi.Metric) error {
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(metrics))
 
 	for _, m := range metrics {
-		client := &http.Client{}
-		endpoint := fmt.Sprintf("http://%s/%s/%s/%v", url, m.MType, m.ID, m.Value)
+		m := m
+		wg.Add(1)
 
-		data, err := json.Marshal(m)
+		go func(m metricsapi.Metric) {
+			defer wg.Done()
 
-		if err != nil {
-			return fmt.Errorf("failed to marshal metric: %w", err)
-		}
+			jsonMetric, err := json.Marshal(m)
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-		req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(data))
-		req.Header.Add("Content-Type", "application/json")
+			endpoint := fmt.Sprintf("http://%s/update/", host)
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(jsonMetric))
 
-		if err != nil {
-			return err
-		}
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-		res, err := client.Do(req)
-		if err != nil {
-			return err
-		}
+			req.Header.Set("Content-Type", "application/json")
+			res, err := client.Do(req)
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-		err = res.Body.Close()
-		if err != nil {
-			return err
-		}
+			err = res.Body.Close()
+			if err != nil {
+				errChan <- err
+				return
+			}
+		}(m)
+
 	}
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	var errors []error
+
+	for err := range errChan {
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("encountered %d errors: %v", len(errors), errors)
+	}
+
 	return nil
+
 }
 
-func updateMetrics() []metricsapi.Metrics {
-	var metrics []metricsapi.Metrics
+func updateMetrics() []metricsapi.Metric {
+	var metrics []metricsapi.Metric
 	var MemStats runtime.MemStats
 
 	runtime.ReadMemStats(&MemStats)
+
 	msValue := reflect.ValueOf(MemStats)
 	msType := msValue.Type()
 
@@ -106,21 +152,29 @@ func updateMetrics() []metricsapi.Metrics {
 		if !ok {
 			continue
 		}
-		value := msValue.FieldByName(metric)
 
-		if !value.IsValid() || value.Kind() != reflect.Float64 {
-			continue
+		var value float64
+
+		switch msValue.FieldByName(metric).Interface().(type) {
+		case uint64:
+			value = float64(msValue.FieldByName(metric).Interface().(uint64))
+		case uint32:
+			value = float64(msValue.FieldByName(metric).Interface().(uint32))
+		case float64:
+			value = msValue.FieldByName(metric).Interface().(float64)
+		default:
+			return nil
+
 		}
 
-		val := value.Float()
-
-		metrics = append(metrics, metricsapi.Metrics{ID: field.Name, MType: "gauge", Value: &val})
+		metrics = append(metrics, metricsapi.Metric{ID: field.Name, MType: "gauge", Value: &value})
 	}
 
 	counter += 1
+
 	randValue := rand.Float64()
-	metrics = append(metrics, metricsapi.Metrics{ID: "RandomValue", MType: "gauge", Value: &randValue})
-	metrics = append(metrics, metricsapi.Metrics{ID: "PollCounter", MType: "counter", Delta: &counter})
+	metrics = append(metrics, metricsapi.Metric{ID: "RandomValue", MType: "gauge", Value: &randValue})
+	metrics = append(metrics, metricsapi.Metric{ID: "PollCount", MType: "counter", Delta: &counter})
 
 	return metrics
 }

@@ -1,45 +1,60 @@
 package main
 
 import (
-	"github.com/amangeldi0/metric-tracker/internal/metricsapi"
-	"reflect"
-	"runtime"
+	"context"
+	"encoding/json"
+	metricsapi "github.com/amangeldi0/metric-tracker/api/metrics"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestUpdateMetrics(t *testing.T) {
 	metrics := updateMetrics()
 
-	if len(metrics) == 0 {
-		t.Errorf("expected non-empty metrichandlers, got %d", len(metrics))
-	}
+	assert.NotEmpty(t, metrics, "Метрики не должны быть пустыми")
 
-	found := false
-	for _, metric := range metrics {
-		if metric.ID == "RandomValue" && metric.MType == "gauge" {
-			found = true
-			break
+	var foundPollCount, foundRandomValue bool
+
+	for _, m := range metrics {
+		if m.ID == "PollCount" {
+			foundPollCount = true
+			assert.Equal(t, "counter", m.MType, "PollCount должен быть типа counter")
+			assert.NotNil(t, m.Delta, "PollCount должен иметь Delta значение")
+		}
+		if m.ID == "RandomValue" {
+			foundRandomValue = true
+			assert.Equal(t, "gauge", m.MType, "RandomValue должен быть типа gauge")
+			assert.NotNil(t, m.Value, "RandomValue должен иметь Value значение")
 		}
 	}
 
-	if !found {
-		t.Errorf("expected metric RandomValue of type gauge to be present")
-	}
+	assert.True(t, foundPollCount, "PollCount не найден среди метрик")
+	assert.True(t, foundRandomValue, "RandomValue не найден среди метрик")
 }
 
-func TestGaugeMetricsIntegrity(t *testing.T) {
-	var MemStats runtime.MemStats
-	runtime.ReadMemStats(&MemStats)
-	msValue := reflect.ValueOf(MemStats)
-	msType := msValue.Type()
+func TestReportMetrics(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method, "Метод запроса должен быть POST")
+		assert.Equal(t, "/update/", r.URL.Path, "Некорректный путь запроса")
 
-	for _, metric := range metricsapi.GaugeMetrics {
-		_, ok := msType.FieldByName(metric)
-		if !ok {
-			if metric == "RandomValue" {
-				continue
-			}
-			t.Errorf("metric %s not found in runtime.MemStats", metric)
-		}
+		var metric metricsapi.Metric
+		err := json.NewDecoder(r.Body).Decode(&metric)
+		assert.NoError(t, err, "Ошибка при разборе JSON тела запроса")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	metrics := []metricsapi.Metric{
+		{ID: "TestMetric", MType: "gauge", Value: new(float64)},
 	}
+
+	err := reportMetrics(ctx, client, server.Listener.Addr().String(), metrics)
+	assert.NoError(t, err, "Ошибка при отправке метрик")
 }

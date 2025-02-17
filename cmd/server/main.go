@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/amangeldi0/metric-tracker/api/metrics"
 	"github.com/amangeldi0/metric-tracker/internal/config"
+	"github.com/amangeldi0/metric-tracker/internal/http/response"
 	liblogger "github.com/amangeldi0/metric-tracker/internal/lib/logger"
-	"github.com/amangeldi0/metric-tracker/internal/metricsapi"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 	"log"
@@ -12,7 +13,7 @@ import (
 )
 
 func run() error {
-	logger, err := liblogger.New(zap.InfoLevel, "agent")
+	logger, err := liblogger.New(zap.InfoLevel, "server")
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -22,16 +23,23 @@ func run() error {
 		logger.Fatal("error loading config", zap.Error(err))
 	}
 
-	ms := metricsapi.New(logger)
-
 	router := chi.NewRouter()
 	sugar := logger.Sugar()
 
 	router.Use(liblogger.WithLogging(sugar))
 
-	router.Get("/", ms.GetAllHandler)
-	router.Get("/value/{metricType}/{metricName}", ms.GetMetricHandler)
-	router.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateMetricHandler)
+	router.MethodNotAllowed(response.MethodNotAllowedResponse)
+	router.NotFound(response.NotFoundResponse)
+
+	ms := metrics.NewStorage()
+
+	metricHandler := metrics.NewHandler(logger, ms)
+
+	router.Get("/", metricHandler.GetAllHandler)
+	router.Get("/value/{metricType}/{metricName}", metricHandler.GetHandler)
+	router.Post("/value/", metricHandler.JSONGetHandler)
+	router.Post("/update/{metricType}/{metricName}/{metricValue}", metricHandler.UpdateHandler)
+	router.Post("/update/", metricHandler.JSONUpdateHandler)
 
 	srv := &http.Server{
 		Addr:    cfg.Address,

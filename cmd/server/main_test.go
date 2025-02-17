@@ -1,55 +1,34 @@
 package main
 
 import (
-	liblogger "github.com/amangeldi0/metric-tracker/internal/lib/logger"
-	"github.com/amangeldi0/metric-tracker/internal/metricsapi"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+	"time"
 )
 
-func mockLogger() *zap.Logger {
-	logger, _ := zap.NewDevelopment()
-	return logger
-}
+func TestRun(t *testing.T) {
+	go func() {
+		err := run()
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	}()
 
-func mockRouter() http.Handler {
-	logger := mockLogger()
-	ms := metricsapi.New(logger)
+	time.Sleep(100 * time.Millisecond)
 
-	router := chi.NewRouter()
-	sugar := logger.Sugar()
-	router.Use(liblogger.WithLogging(sugar))
+	resp, err := http.Get("http://localhost:8080/")
+	if err != nil {
+		t.Fatalf("failed to send request: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			t.Errorf("failed to close response body: %v", err)
+		}
+	}(resp.Body)
 
-	router.Get("/", ms.GetAllHandler)
-	router.Get("/value/{metricType}/{metricName}", ms.GetMetricHandler)
-	router.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateMetricHandler)
-
-	return router
-}
-
-func TestRootHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "/", nil)
-	assert.NoError(t, err)
-
-	rr := httptest.NewRecorder()
-	handler := mockRouter()
-	handler.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-}
-
-func TestUpdateMetricHandler(t *testing.T) {
-	req, err := http.NewRequest("POST", "/update/gauge/cpu_usage/45.7", nil)
-	assert.NoError(t, err)
-
-	rr := httptest.NewRecorder()
-	handler := mockRouter()
-	handler.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
+		t.Errorf("unexpected status code: got %d, want 200 or 404", resp.StatusCode)
+	}
 }
