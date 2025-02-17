@@ -12,7 +12,7 @@ func TestWriteJson(t *testing.T) {
 	rr := httptest.NewRecorder()
 	data := envelope{"message": "hello"}
 
-	WriteJson(rr, http.StatusOK, data)
+	WriteJSON(rr, http.StatusOK, data)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, rr.Code)

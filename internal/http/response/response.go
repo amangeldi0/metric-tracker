@@ -8,7 +8,7 @@ import (
 
 type envelope map[string]any
 
-func WriteJson(w http.ResponseWriter, status int, data any) {
+func WriteJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 
 	js, err := json.Marshal(data)
@@ -35,7 +35,7 @@ func ErrorResponse(w http.ResponseWriter, _ *http.Request, status int, message a
 	env := envelope{"error": message}
 	//logger.Log.Error("error in incoming request", zap.Int("status", status), zap.String("url", r.URL.String()))
 
-	WriteJson(w, status, env)
+	WriteJSON(w, status, env)
 }
 func BadRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	ErrorResponse(w, r, http.StatusBadRequest, err.Error())
@@ -52,12 +52,12 @@ func NotFoundResponse(w http.ResponseWriter, _ *http.Request) {
 	message := "the required resource could not be found"
 	env := envelope{"error": message}
 
-	WriteJson(w, http.StatusNotFound, env)
+	WriteJSON(w, http.StatusNotFound, env)
 }
 
 func MethodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 	message := fmt.Sprintf("the %s method is not supported for this resource", r.Method)
 	env := envelope{"error": message}
 
-	WriteJson(w, http.StatusMethodNotAllowed, env)
+	WriteJSON(w, http.StatusMethodNotAllowed, env)
 }

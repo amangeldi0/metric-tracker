@@ -54,7 +54,7 @@ func (h *Handler) JSONUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJson(w, http.StatusOK, jsonMetric)
+	response.WriteJSON(w, http.StatusOK, jsonMetric)
 }
 
 func (h *Handler) JSONGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +82,7 @@ func (h *Handler) JSONGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJson(w, http.StatusOK, jsonMetric)
+	response.WriteJSON(w, http.StatusOK, jsonMetric)
 }
 
 func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {

@@ -29,7 +29,7 @@ func TestJSONUpdateHandler(t *testing.T) {
 	h.JSONUpdateHandler(w, r)
 	res := w.Result()
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
+		err := res.Body.Close()
 		if err != nil {
 			t.Errorf("failed to close response body: %s", err)
 		}
@@ -61,7 +61,7 @@ func TestJSONGetHandler(t *testing.T) {
 	h.JSONGetHandler(w, r)
 	res := w.Result()
 	defer func(Body io.ReadCloser) {
-		err = Body.Close()
+		err = res.Body.Close()
 		if err != nil {
 			t.Errorf("failed to close response body: %s", err)
 		}

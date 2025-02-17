@@ -22,7 +22,7 @@ func TestRun(t *testing.T) {
 		t.Fatalf("failed to send request: %v", err)
 	}
 	defer func(Body io.ReadCloser) {
-		err = Body.Close()
+		err = resp.Body.Close()
 		if err != nil {
 			t.Errorf("failed to close response body: %v", err)
 		}
