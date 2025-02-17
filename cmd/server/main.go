@@ -30,8 +30,8 @@ func run() error {
 	router.Use(liblogger.WithLogging(sugar))
 
 	router.Get("/", ms.GetAllHandler)
-	router.Get("/value/{metricType}/{metricName}", ms.GetHandler)
-	router.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateHandler)
+	router.Get("/value/{metricType}/{metricName}", ms.GetMetricHandler)
+	router.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateMetricHandler)
 
 	srv := &http.Server{
 		Addr:    cfg.Address,
