@@ -16,7 +16,7 @@ func TestUpdateMetrics(t *testing.T) {
 
 	found := false
 	for _, metric := range metrics {
-		if metric.Name == "RandomValue" && metric.Type == "gauge" {
+		if metric.ID == "RandomValue" && metric.MType == "gauge" {
 			found = true
 			break
 		}

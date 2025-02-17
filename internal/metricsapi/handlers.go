@@ -9,10 +9,6 @@ import (
 )
 
 func (ms *MemStorage) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		http.Error(w, "invalid content type", http.StatusUnsupportedMediaType)
-		return
-	}
 
 	var req Metrics
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -25,7 +25,7 @@ func mockStorage() *MemStorage {
 func TestUpdateHandler(t *testing.T) {
 	ms := mockStorage()
 	router := chi.NewRouter()
-	router.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateHandler)
+	router.Post("/update/{metricType}/{metricName}/{metricValue}", ms.UpdateMetricHandler)
 
 	req := httptest.NewRequest("POST", "/update/counter/testCounter/10", nil)
 	rr := httptest.NewRecorder()
