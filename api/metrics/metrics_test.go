@@ -8,34 +8,22 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 func TestJSONUpdateHandler(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	storage := NewStorage()
-	h := NewHandler(logger, storage)
+	ms := NewStorage()
+	handler := NewHandler(zap.NewNop(), ms)
 
-	metric := Metric{
-		ID:    "test_metric",
-		MType: TypeGauge,
-		Value: func(v float64) *float64 { return &v }(10.5),
-	}
+	payload := `{"id": "testMetric", "type": "gauge", "value": 123.45}`
+	req := httptest.NewRequest(http.MethodPost, "/update/", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
 
-	body, _ := json.Marshal(metric)
-	r := httptest.NewRequest(http.MethodPost, "/update/", bytes.NewBuffer(body))
-	w := httptest.NewRecorder()
+	rr := httptest.NewRecorder()
+	handler.JSONUpdateHandler(rr, req)
 
-	h.JSONUpdateHandler(w, r)
-	res := w.Result()
-	defer func(Body io.ReadCloser) {
-		err := res.Body.Close()
-		if err != nil {
-			t.Errorf("failed to close response body: %s", err)
-		}
-	}(res.Body)
-
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
 func TestJSONGetHandler(t *testing.T) {

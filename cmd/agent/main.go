@@ -11,7 +11,6 @@ import (
 	"github.com/amangeldi0/metric-tracker/internal/config"
 	logger2 "github.com/amangeldi0/metric-tracker/internal/lib/logger"
 	"go.uber.org/zap"
-	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -114,6 +113,12 @@ func reportMetrics(ctx context.Context, client *http.Client, host string, metric
 
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Content-Encoding", "gzip")
+			req.Header.Set("Accept-Encoding", "gzip")
+
+			// Устанавливаем Content-Length, чтобы сервер корректно обработал запрос
+			if cJSONMetric != nil {
+				req.ContentLength = int64(cJSONMetric.Size())
+			}
 
 			res, err := client.Do(req)
 			if err != nil {
@@ -129,6 +134,7 @@ func reportMetrics(ctx context.Context, client *http.Client, host string, metric
 		}(m)
 
 	}
+
 	go func() {
 		wg.Wait()
 		close(errChan)
@@ -145,7 +151,6 @@ func reportMetrics(ctx context.Context, client *http.Client, host string, metric
 	}
 
 	return nil
-
 }
 
 func updateMetrics() []metricsapi.Metric {
@@ -189,21 +194,22 @@ func updateMetrics() []metricsapi.Metric {
 	return metrics
 }
 
-func compressData(data []byte) (io.Reader, error) {
+func compressData(data []byte) (*bytes.Reader, error) {
 	b := new(bytes.Buffer)
 	w, err := gzip.NewWriterLevel(b, gzip.BestSpeed)
 	if err != nil {
 		return nil, err
 	}
+
 	_, err = w.Write(data)
 	if err != nil {
 		return nil, err
 	}
+
 	err = w.Close()
-	w.Reset(b)
 	if err != nil {
 		return nil, err
 	}
 
-	return b, nil
+	return bytes.NewReader(b.Bytes()), nil
 }
