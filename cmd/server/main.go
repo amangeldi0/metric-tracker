@@ -5,6 +5,7 @@ import (
 	"github.com/amangeldi0/metric-tracker/api/metrics"
 	"github.com/amangeldi0/metric-tracker/internal/config"
 	"github.com/amangeldi0/metric-tracker/internal/http/response"
+	"github.com/amangeldi0/metric-tracker/internal/lib/commpress"
 	liblogger "github.com/amangeldi0/metric-tracker/internal/lib/logger"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -27,6 +28,7 @@ func run() error {
 	sugar := logger.Sugar()
 
 	router.Use(liblogger.WithLogging(sugar))
+	router.Use(commpress.Decompresser)
 
 	router.MethodNotAllowed(response.MethodNotAllowedResponse)
 	router.NotFound(response.NotFoundResponse)

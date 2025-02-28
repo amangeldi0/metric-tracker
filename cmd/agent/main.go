@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"flag"
@@ -10,6 +11,7 @@ import (
 	"github.com/amangeldi0/metric-tracker/internal/config"
 	logger2 "github.com/amangeldi0/metric-tracker/internal/lib/logger"
 	"go.uber.org/zap"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -96,8 +98,14 @@ func reportMetrics(ctx context.Context, client *http.Client, host string, metric
 				return
 			}
 
+			cJSONMetric, err := compressData(jsonMetric)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
 			endpoint := fmt.Sprintf("http://%s/update/", host)
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(jsonMetric))
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, cJSONMetric)
 
 			if err != nil {
 				errChan <- err
@@ -105,6 +113,8 @@ func reportMetrics(ctx context.Context, client *http.Client, host string, metric
 			}
 
 			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Encoding", "gzip")
+
 			res, err := client.Do(req)
 			if err != nil {
 				errChan <- err
@@ -177,4 +187,23 @@ func updateMetrics() []metricsapi.Metric {
 	metrics = append(metrics, metricsapi.Metric{ID: "PollCount", MType: "counter", Delta: &counter})
 
 	return metrics
+}
+
+func compressData(data []byte) (io.Reader, error) {
+	b := new(bytes.Buffer)
+	w, err := gzip.NewWriterLevel(b, gzip.BestSpeed)
+	if err != nil {
+		return nil, err
+	}
+	_, err = w.Write(data)
+	if err != nil {
+		return nil, err
+	}
+	err = w.Close()
+	w.Reset(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }
