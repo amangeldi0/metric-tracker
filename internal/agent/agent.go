@@ -25,7 +25,7 @@ func ReportMetrics(ctx context.Context, client *http.Client, host string, metric
 		m := m
 		wg.Add(1)
 
-		go func(m metrics.Metric) {
+		go func(m metricsapi.Metric) {
 			defer wg.Done()
 
 			jsonMetric, err := json.Marshal(m)
@@ -99,7 +99,7 @@ func UpdateMetrics() []metricsapi.Metric {
 	msValue := reflect.ValueOf(MemStats)
 	msType := msValue.Type()
 
-	for _, metric := range metrics.GaugeMetrics {
+	for _, metric := range metricsapi.GaugeMetrics {
 		field, ok := msType.FieldByName(metric)
 		if !ok {
 			continue
@@ -119,14 +119,14 @@ func UpdateMetrics() []metricsapi.Metric {
 
 		}
 
-		metrics = append(metrics, metrics.Metric{ID: field.Name, MType: "gauge", Value: &value})
+		metrics = append(metrics, metricsapi.Metric{ID: field.Name, MType: "gauge", Value: &value})
 	}
 
 	counter += 1
 
 	randValue := rand.Float64()
-	metrics = append(metrics, metrics.Metric{ID: "RandomValue", MType: "gauge", Value: &randValue})
-	metrics = append(metrics, metrics.Metric{ID: "PollCount", MType: "counter", Delta: &counter})
+	metrics = append(metrics, metricsapi.Metric{ID: "RandomValue", MType: "gauge", Value: &randValue})
+	metrics = append(metrics, metricsapi.Metric{ID: "PollCount", MType: "counter", Delta: &counter})
 
 	return metrics
 }
