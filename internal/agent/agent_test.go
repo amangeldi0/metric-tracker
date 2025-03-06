@@ -1,10 +1,10 @@
-package main
+package agent
 
 import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	metricsapi "github.com/amangeldi0/metric-tracker/api/metrics"
+	metricsapi "github.com/amangeldi0/metric-tracker/internal/metrics"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestUpdateMetrics(t *testing.T) {
-	metrics := updateMetrics()
+	metrics := UpdateMetrics()
 	assert.NotEmpty(t, metrics, "Метрики не должны быть пустыми")
 
 	var foundPollCount, foundRandomValue bool
@@ -62,7 +62,7 @@ func TestReportMetrics(t *testing.T) {
 		{ID: "TestMetric", MType: "gauge", Value: new(float64)},
 	}
 
-	err := reportMetrics(ctx, client, server.Listener.Addr().String(), metrics)
+	err := ReportMetrics(ctx, client, server.Listener.Addr().String(), metrics)
 	assert.NoError(t, err, "Ошибка при отправке метрик")
 }
 
@@ -75,7 +75,7 @@ func TestReportMetrics_Error(t *testing.T) {
 		{ID: "TestMetric", MType: "gauge", Value: new(float64)},
 	}
 
-	err := reportMetrics(ctx, client, "http://localhost:9999", metrics)
+	err := ReportMetrics(ctx, client, "http://localhost:9999", metrics)
 	assert.Error(t, err, "Должна возникнуть ошибка при отправке метрик на недоступный сервер")
 }
 

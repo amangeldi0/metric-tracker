@@ -6,15 +6,21 @@ import (
 )
 
 type Config struct {
-	Address        string `env:"ADDRESS"`
-	ReportInterval int    `env:"REPORT_INTERVAL"`
-	PollInterval   int    `env:"POLL_INTERVAL"`
+	Address         string `env:"ADDRESS"`
+	ReportInterval  int    `env:"REPORT_INTERVAL"`
+	PollInterval    int    `env:"POLL_INTERVAL"`
+	StoreInterval   int    `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 var (
-	ReportInterval = 10
-	PollInterval   = 2
-	DefaultAddress = "localhost:8080"
+	ReportInterval  = 10
+	PollInterval    = 2
+	DefaultAddress  = "localhost:8080"
+	StoreInterval   = 300
+	FileStoragePath = ""
+	Restore         = false
 )
 
 func New() (*Config, error) {
@@ -24,6 +30,9 @@ func New() (*Config, error) {
 	flag.StringVar(&config.Address, "a", DefaultAddress, "server address")
 	flag.IntVar(&config.ReportInterval, "r", ReportInterval, "report interval")
 	flag.IntVar(&config.PollInterval, "p", PollInterval, "poll interval")
+	flag.StringVar(&config.FileStoragePath, "f", FileStoragePath, "file storage path")
+	flag.BoolVar(&config.Restore, "r", Restore, "restore")
+	flag.IntVar(&config.StoreInterval, "s", StoreInterval, "store interval")
 
 	flag.Parse()
 

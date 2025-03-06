@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/amangeldi0/metric-tracker/api/metrics"
+	"github.com/amangeldi0/metric-tracker/internal/commpress"
 	"github.com/amangeldi0/metric-tracker/internal/config"
 	"github.com/amangeldi0/metric-tracker/internal/http/response"
-	"github.com/amangeldi0/metric-tracker/internal/lib/commpress"
-	liblogger "github.com/amangeldi0/metric-tracker/internal/lib/logger"
+	liblogger "github.com/amangeldi0/metric-tracker/internal/logger"
+	metrics2 "github.com/amangeldi0/metric-tracker/internal/metrics"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 	"log"
@@ -33,9 +33,9 @@ func run() error {
 	router.MethodNotAllowed(response.MethodNotAllowedResponse)
 	router.NotFound(response.NotFoundResponse)
 
-	ms := metrics.NewStorage()
+	ms := metrics2.NewStorage()
 
-	metricHandler := metrics.NewHandler(logger, ms)
+	metricHandler := metrics2.NewHandler(logger, ms)
 
 	router.Get("/", metricHandler.GetAllHandler)
 	router.Get("/value/{metricType}/{metricName}", metricHandler.GetHandler)

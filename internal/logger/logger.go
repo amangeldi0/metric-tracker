@@ -36,7 +36,7 @@ func New(level zapcore.Level, app AppType) (*zap.Logger, error) {
 	}
 
 	logger = logger.With(
-		zap.String("app", string(app)),
+		zap.String("agent", string(app)),
 	)
 
 	defer logger.Sync()
