@@ -1,60 +1,93 @@
 package main
 
 import (
-	"fmt"
-	"github.com/amangeldi0/metric-tracker/internal/commpress"
-	"github.com/amangeldi0/metric-tracker/internal/config"
-	"github.com/amangeldi0/metric-tracker/internal/http/response"
-	liblogger "github.com/amangeldi0/metric-tracker/internal/logger"
-	metrics2 "github.com/amangeldi0/metric-tracker/internal/metrics"
-	"github.com/go-chi/chi/v5"
+	"github.com/amangeldi0/metric-tracker/internal/server/config"
+	filestorage "github.com/amangeldi0/metric-tracker/internal/server/file_storage"
+	"github.com/amangeldi0/metric-tracker/internal/server/handlers"
+	"github.com/amangeldi0/metric-tracker/internal/server/middlewares"
+	"github.com/amangeldi0/metric-tracker/internal/server/storage"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"log"
-	"net/http"
 )
 
-func run() error {
-	logger, err := liblogger.New(zap.InfoLevel, "server")
+func main() {
+	logger, err := zap.NewDevelopment()
 	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
+		panic(err)
 	}
 
-	cfg, err := config.New()
-	if err != nil {
-		logger.Fatal("error loading config", zap.Error(err))
+	sugarLogger := logger.Sugar()
+
+	config.Load()
+	if err = config.Parse(); err != nil {
+		sugarLogger.Panicf("Failed loading config: %s", err)
 	}
 
-	router := chi.NewRouter()
-	sugar := logger.Sugar()
+	memStorage := storage.NewMem()
 
-	router.Use(liblogger.WithLogging(sugar))
-	router.Use(commpress.Decompresser)
+	var fileStorage *filestorage.Storage
+	if config.Config.FileStoragePath != "" {
+		fileStorage, err = filestorage.New(&memStorage, sugarLogger)
+		if err != nil {
+			sugarLogger.Panicf("Failed loading file storage: %s", err)
+		}
 
-	router.MethodNotAllowed(response.MethodNotAllowedResponse)
-	router.NotFound(response.NotFoundResponse)
-
-	ms := metrics2.NewStorage()
-
-	metricHandler := metrics2.NewHandler(logger, ms)
-
-	router.Get("/", metricHandler.GetAllHandler)
-	router.Get("/value/{metricType}/{metricName}", metricHandler.GetHandler)
-	router.Post("/value/", metricHandler.JSONGetHandler)
-	router.Post("/update/{metricType}/{metricName}/{metricValue}", metricHandler.UpdateHandler)
-	router.Post("/update/", metricHandler.JSONUpdateHandler)
-
-	srv := &http.Server{
-		Addr:    cfg.Address,
-		Handler: router,
+		if err = fileStorage.Restore(); err != nil {
+			sugarLogger.Panicf("Failed to recover data from file: %s", err)
+		}
+		fileStorage.Start()
 	}
 
-	logger.Info("server started", zap.String("address", cfg.Address))
+	defer func(logger *zap.Logger, fileStorage *filestorage.Storage) {
+		if err = logger.Sync(); err != nil {
+			panic(err)
+		}
+		if fileStorage != nil {
+			if err = fileStorage.Close(); err != nil {
+				panic(err)
+			}
+		}
+	}(logger, fileStorage)
 
-	return srv.ListenAndServe()
+	r := setupRouter(&memStorage, fileStorage, sugarLogger)
+	if err = r.Run(config.Config.Address); err != nil {
+		sugarLogger.Panicf("Failed start server: %s", err)
+	}
 }
 
-func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
+func setupRouter(storage *storage.Mem, fileStorage *filestorage.Storage, logger *zap.SugaredLogger) *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
+
+	r := gin.New()
+
+	baseHandler := handlers.NewBase(storage, logger)
+	baseMiddleware := middlewares.NewBase(logger)
+
+	r.Use(baseMiddleware.Compress)
+	r.Use(baseMiddleware.Logger)
+
+	if fileStorage != nil {
+		r.Use(fileStorage.GetMiddleware())
 	}
+
+	r.GET("/", baseHandler.Values())
+
+	r.POST("/value", baseHandler.ValueByBody())
+	r.POST("/value/", baseHandler.ValueByBody())
+
+	r.GET("/value/:type/:name", baseHandler.ValueByURI())
+	r.GET("/value/:type/:name/", baseHandler.ValueByURI())
+
+	r.POST("/update", baseHandler.UpdateByBody())
+	r.POST("/update/", baseHandler.UpdateByBody())
+
+	r.POST("/update/:type", baseHandler.UpdateByURI())
+	r.POST("/update/:type/", baseHandler.UpdateByURI())
+
+	r.POST("/update/:type/:name/:value", baseHandler.UpdateByURI())
+	r.POST("/update/:type/:name/:value/", baseHandler.UpdateByURI())
+
+	r.NoRoute(baseHandler.BadRequest)
+
+	return r
 }
