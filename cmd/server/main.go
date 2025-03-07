@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/amangeldi0/metric-tracker/internal/server/config"
-	filestorage "github.com/amangeldi0/metric-tracker/internal/server/file_storage"
+	filestorage "github.com/amangeldi0/metric-tracker/internal/server/filestorage"
 	"github.com/amangeldi0/metric-tracker/internal/server/handlers"
 	"github.com/amangeldi0/metric-tracker/internal/server/middlewares"
 	"github.com/amangeldi0/metric-tracker/internal/server/storage"
