@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"flag"
@@ -11,13 +11,13 @@ var Config struct {
 	PollInterval   int    `env:"POLL_INTERVAL"`
 }
 
-func LoadConfig() {
+func Load() {
 	flag.StringVar(&Config.Address, "a", "localhost:8080", "server address")
 	flag.IntVar(&Config.ReportInterval, "r", 10, "report interval")
 	flag.IntVar(&Config.PollInterval, "p", 2, "poll interval")
 }
 
-func ParseConfig() error {
+func Parse() error {
 	flag.Parse()
 
 	return env.Parse(&Config)
