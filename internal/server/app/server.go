@@ -1,12 +1,14 @@
 package app
 
 import (
+	"context"
 	"github.com/amangeldi0/metric-tracker/internal/server/config"
 	"github.com/amangeldi0/metric-tracker/internal/server/filestorage"
 	"github.com/amangeldi0/metric-tracker/internal/server/handlers"
 	"github.com/amangeldi0/metric-tracker/internal/server/middlewares"
 	"github.com/amangeldi0/metric-tracker/internal/server/storage"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +25,11 @@ func Run() {
 		sugarLogger.Panicf("Failed loading config: %s", err)
 	}
 
+	conn, _ := pgx.Connect(context.Background(), config.Config.DatabaseDSN)
+
 	memStorage := storage.NewMem()
+
+	defer conn.Close(context.Background())
 
 	var fileStorage *filestorage.Storage
 	if config.Config.FileStoragePath != "" {
@@ -49,18 +55,18 @@ func Run() {
 		}
 	}(logger, fileStorage)
 
-	r := setupRouter(&memStorage, fileStorage, sugarLogger)
+	r := setupRouter(&memStorage, fileStorage, sugarLogger, conn)
 	if err = r.Run(config.Config.Address); err != nil {
 		sugarLogger.Panicf("Failed start server: %s", err)
 	}
 }
 
-func setupRouter(storage *storage.Mem, fileStorage *filestorage.Storage, logger *zap.SugaredLogger) *gin.Engine {
+func setupRouter(storage *storage.Mem, fileStorage *filestorage.Storage, logger *zap.SugaredLogger, conn *pgx.Conn) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
 
-	baseHandler := handlers.NewBase(storage, logger)
+	baseHandler := handlers.NewBase(storage, logger, conn)
 	baseMiddleware := middlewares.NewBase(logger)
 
 	r.Use(baseMiddleware.Compress)
@@ -71,6 +77,8 @@ func setupRouter(storage *storage.Mem, fileStorage *filestorage.Storage, logger 
 	}
 
 	r.GET("/", baseHandler.Values())
+
+	r.GET("/ping", baseHandler.Ping())
 
 	r.POST("/value", baseHandler.ValueByBody())
 	r.POST("/value/", baseHandler.ValueByBody())

@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"github.com/amangeldi0/metric-tracker/internal/server/models"
+	"github.com/jackc/pgx/v5"
 )
 
 type (
 	BaseHandler struct {
 		storage stor
 		log     logger
+		dbpool  *pgx.Conn
 	}
 
 	logger interface {
@@ -24,6 +26,6 @@ type (
 	}
 )
 
-func NewBase(storage stor, log logger) *BaseHandler {
-	return &BaseHandler{storage: storage, log: log}
+func NewBase(storage stor, log logger, dbpool *pgx.Conn) *BaseHandler {
+	return &BaseHandler{storage: storage, log: log, dbpool: dbpool}
 }

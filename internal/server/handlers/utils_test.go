@@ -75,7 +75,7 @@ func TestValidateContentType(t *testing.T) {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	bh := NewBase(nil, zaptest.NewLogger(t).Sugar())
+	bh := NewBase(nil, zaptest.NewLogger(t).Sugar(), nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -223,7 +223,7 @@ func TestValidateAndShouldBindJSON(t *testing.T) {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	bh := NewBase(nil, zaptest.NewLogger(t).Sugar())
+	bh := NewBase(nil, zaptest.NewLogger(t).Sugar(), nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
