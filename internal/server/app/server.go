@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"github.com/amangeldi0/metric-tracker/internal/server/config"
 	"github.com/amangeldi0/metric-tracker/internal/server/filestorage"
 	"github.com/amangeldi0/metric-tracker/internal/server/handlers"
@@ -11,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
-	"os"
 )
 
 func Run() {
@@ -27,12 +25,7 @@ func Run() {
 		sugarLogger.Panicf("Failed loading config: %s", err)
 	}
 
-	conn, err := pgx.Connect(context.Background(), config.Config.DatabaseDSN)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
-	}
+	conn, _ := pgx.Connect(context.Background(), config.Config.DatabaseDSN)
 
 	memStorage := storage.NewMem()
 
