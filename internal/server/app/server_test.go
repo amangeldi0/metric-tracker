@@ -33,7 +33,7 @@ func TestBadRequest(t *testing.T) {
 		},
 	}
 
-	r := setupRouter(nil, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(nil, nil, zaptest.NewLogger(t).Sugar(), nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar(), nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -341,7 +341,7 @@ func TestUpdateByBody(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar(), nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -439,7 +439,7 @@ func TestValue(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar(), nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -531,7 +531,7 @@ func TestValueByBody(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar(), nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -604,7 +604,7 @@ func TestValues(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar(), nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
