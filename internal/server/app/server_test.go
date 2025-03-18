@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/amangeldi0/metric-tracker/internal/server/models"
 	"github.com/amangeldi0/metric-tracker/internal/server/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,7 +32,7 @@ func TestBadRequest(t *testing.T) {
 		},
 	}
 
-	r := setupRouter(nil, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(nil, zaptest.NewLogger(t).Sugar())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -168,7 +167,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(memStorage, zaptest.NewLogger(t).Sugar())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -211,7 +210,7 @@ func TestUpdateByBody(t *testing.T) {
 			name: "Positive gauge",
 			args: args{
 				httpMethod: http.MethodPost,
-				body: models.MetricsUpdate{
+				body: storage.MetricsUpdate{
 					ID:    "test",
 					MType: string(storage.GaugeType),
 					Value: getPointerFloat64(123.0),
@@ -226,7 +225,7 @@ func TestUpdateByBody(t *testing.T) {
 			name: "Positive gauge (with big value)",
 			args: args{
 				httpMethod: http.MethodPost,
-				body: models.MetricsUpdate{
+				body: storage.MetricsUpdate{
 					ID:    "test",
 					MType: string(storage.GaugeType),
 					Value: getPointerFloat64(123.123456789123456789),
@@ -241,7 +240,7 @@ func TestUpdateByBody(t *testing.T) {
 			name: "Negative gauge (invalid http method)",
 			args: args{
 				httpMethod: http.MethodDelete,
-				body: models.MetricsUpdate{
+				body: storage.MetricsUpdate{
 					ID:    "test",
 					MType: string(storage.GaugeType),
 					Value: getPointerFloat64(123.0),
@@ -271,7 +270,7 @@ func TestUpdateByBody(t *testing.T) {
 			name: "Positive counter",
 			args: args{
 				httpMethod: http.MethodPost,
-				body: models.MetricsUpdate{
+				body: storage.MetricsUpdate{
 					ID:    "Test1",
 					MType: "counter",
 					Delta: getPointerInt64(123),
@@ -286,7 +285,7 @@ func TestUpdateByBody(t *testing.T) {
 			name: "Negative counter (invalid http method)",
 			args: args{
 				httpMethod: http.MethodDelete,
-				body: models.MetricsUpdate{
+				body: storage.MetricsUpdate{
 					ID:    "Test2",
 					MType: "counter",
 					Delta: getPointerInt64(123),
@@ -331,7 +330,7 @@ func TestUpdateByBody(t *testing.T) {
 			name: "Negative (without params)",
 			args: args{
 				httpMethod: http.MethodPost,
-				body:       models.MetricsUpdate{},
+				body:       storage.MetricsUpdate{},
 			},
 			want: want{
 				statusCode: http.StatusBadRequest,
@@ -341,7 +340,7 @@ func TestUpdateByBody(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(memStorage, zaptest.NewLogger(t).Sugar())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -439,7 +438,7 @@ func TestValue(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(memStorage, zaptest.NewLogger(t).Sugar())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -531,7 +530,7 @@ func TestValueByBody(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(memStorage, zaptest.NewLogger(t).Sugar())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -544,7 +543,7 @@ func TestValueByBody(t *testing.T) {
 				}
 			}
 
-			jsonBytes, err := json.Marshal(&models.MetricsValue{
+			jsonBytes, err := json.Marshal(&storage.MetricsValue{
 				ID:    tt.args.name,
 				MType: string(tt.args.metricType),
 			})
@@ -604,7 +603,7 @@ func TestValues(t *testing.T) {
 	}
 
 	memStorage := storage.NewMem()
-	r := setupRouter(&memStorage, nil, zaptest.NewLogger(t).Sugar())
+	r := setupRouter(memStorage, zaptest.NewLogger(t).Sugar())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

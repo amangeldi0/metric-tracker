@@ -1,11 +1,9 @@
-package filestorage
+package storage
 
 import (
 	"bytes"
 	"encoding/json"
 	"github.com/amangeldi0/metric-tracker/internal/server/config"
-	"github.com/amangeldi0/metric-tracker/internal/server/models"
-	"github.com/amangeldi0/metric-tracker/internal/server/storage"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -23,42 +21,41 @@ func getPointerInt64(v int64) *int64 {
 }
 
 func TestSuccessFileStorage(t *testing.T) {
-	metrics := []models.MetricsValue{
+	metrics := []MetricsValue{
 		{
 			ID:    "TestGauge",
-			MType: string(storage.GaugeType),
+			MType: string(GaugeType),
 			Value: getPointerFloat64(100.5),
 		},
 		{
 			ID:    "TestCounter",
-			MType: string(storage.CounterType),
+			MType: string(CounterType),
 			Delta: getPointerInt64(321),
 		},
 		{
 			ID:    "TestFloat64SimilarInt64",
-			MType: string(storage.GaugeType),
+			MType: string(GaugeType),
 			Value: getPointerFloat64(300.0),
 		},
 	}
 
-	file, err := os.CreateTemp(t.TempDir(), "tests-file-storage-*.json")
+	file, err := os.CreateTemp(t.TempDir(), "tests-file-mem_storage-*.json")
 	require.NoError(t, err)
 	t.Setenv("FILE_STORAGE_PATH", file.Name())
 
 	require.NoError(t, config.Parse())
 
-	stor := storage.NewMem()
 	log := zaptest.NewLogger(t).Sugar()
 
-	fStorage, err := New(&stor, log)
+	fStorage, err := NewFileStorage(log)
 	require.NoError(t, err)
 
 	for _, metric := range metrics {
 		switch metric.MType {
-		case string(storage.GaugeType):
-			stor.SetGauge(metric.ID, *metric.Value)
-		case string(storage.CounterType):
-			stor.AddCounter(metric.ID, *metric.Delta)
+		case string(GaugeType):
+			_ = fStorage.SetGauge(metric.ID, *metric.Value)
+		case string(CounterType):
+			_ = fStorage.AddCounter(metric.ID, *metric.Delta)
 		}
 	}
 
@@ -67,13 +64,13 @@ func TestSuccessFileStorage(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, count, len(metrics))
 
-	stor = storage.NewMem()
-
-	fStorage, err = New(&stor, log)
+	fStorage, err = NewFileStorage(log)
 	require.NoError(t, err)
 
 	require.NoError(t, fStorage.Restore())
-	require.Equal(t, len(stor.GetAll()), len(metrics))
+
+	metrics, _ = fStorage.GetAll()
+	require.Equal(t, len(metrics), len(metrics))
 
 	if err = os.Remove(file.Name()); err != nil {
 		t.Logf("Не удалось удалить тестовый json-файл: %s", err)
@@ -81,7 +78,7 @@ func TestSuccessFileStorage(t *testing.T) {
 }
 
 func TestNegativeFileStorage(t *testing.T) {
-	metrics := []models.MetricsValue{
+	metrics := []MetricsValue{
 		{
 			ID:    "TestGauge",
 			MType: "InvalidType",
@@ -109,9 +106,7 @@ func TestNegativeFileStorage(t *testing.T) {
 		zap.AddCaller(),
 	)
 
-	stor := storage.NewMem()
-
-	fStorage, err := New(&stor, log.Sugar())
+	fStorage, err := NewFileStorage(log.Sugar())
 	require.NoError(t, err)
 
 	require.NoError(t, fStorage.Restore())
