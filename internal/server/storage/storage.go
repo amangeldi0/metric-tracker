@@ -1,92 +1,68 @@
 package storage
 
 import (
-	"errors"
-	"github.com/amangeldi0/metric-tracker/internal/server/models"
-	"strings"
+	"context"
+	"github.com/amangeldi0/metric-tracker/internal/server/config"
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Mem struct {
-	gauge   map[string]float64
-	counter map[string]int64
+type MetricsUpdate struct {
+	ID    string   `json:"id" binding:"required"`
+	MType string   `json:"type" binding:"required,oneof=counter gauge"`
+	Delta *int64   `json:"delta,omitempty" binding:"required_if=MType counter"`
+	Value *float64 `json:"value,omitempty" binding:"required_if=MType gauge"`
 }
 
-type MetricType string
-
-var (
-	GaugeType   MetricType = "gauge"
-	CounterType MetricType = "counter"
-
-	ErrInvalidGaugeName   = errors.New("invalid gauge name")
-	ErrInvalidCounterName = errors.New("invalid counter name")
-)
-
-func NewMem() Mem {
-	return Mem{
-		gauge:   make(map[string]float64),
-		counter: make(map[string]int64),
-	}
+type MetricsValue struct {
+	ID    string   `json:"id" binding:"required"`
+	MType string   `json:"type" binding:"required,oneof=counter gauge"`
+	Delta *int64   `json:"delta,omitempty"`
+	Value *float64 `json:"value,omitempty"`
 }
 
-func (m *Mem) GetGauge(name string) (float64, error) {
-	name = m.normalizeName(name)
-
-	value, ok := m.gauge[name]
-	if !ok {
-		return 0, ErrInvalidGaugeName
-	}
-
-	return value, nil
+type logger interface {
+	Infof(template string, args ...interface{})
+	Errorf(template string, args ...interface{})
 }
 
-func (m *Mem) SetGauge(name string, value float64) {
-	name = m.normalizeName(name)
-	m.gauge[name] = value
+type Storage interface {
+	SetGauge(string, float64) error
+	AddCounter(string, int64) error
+
+	GetGauge(string) (float64, error)
+	GetCounter(string) (int64, error)
+
+	GetAll() ([]MetricsValue, error)
+	GetMiddleware() gin.HandlerFunc
+	Ping(context.Context) error
+	Close() error
 }
 
-func (m *Mem) GetCounter(name string) (int64, error) {
-	name = m.normalizeName(name)
+func SetupStorage(log logger) (Storage, error) {
+	if config.Config.DatabaseDSN != "" {
+		db, err := pgxpool.New(context.Background(), config.Config.DatabaseDSN)
 
-	value, ok := m.counter[name]
-	if !ok {
-		return 0, ErrInvalidCounterName
+		if err != nil {
+			return nil, err
+		}
+
+		return NewPsStorage(db, log)
 	}
 
-	return value, nil
-}
+	if config.Config.FileStoragePath != "" {
+		fs, err := NewFileStorage(log)
+		if err != nil {
+			return nil, err
+		}
 
-func (m *Mem) AddCounter(name string, value int64) {
-	name = m.normalizeName(name)
+		if err = fs.Restore(); err != nil {
+			return nil, err
+		}
+		fs.Start()
 
-	if _, err := m.GetCounter(name); err != nil {
-		m.counter[name] = value
-	} else {
-		m.counter[name] += value
-	}
-}
-
-func (m *Mem) GetAll() []models.MetricsValue {
-	var values []models.MetricsValue
-
-	for k, v := range m.gauge {
-		values = append(values, models.MetricsValue{
-			ID:    k,
-			MType: string(GaugeType),
-			Value: &v,
-		})
+		return fs, nil
 	}
 
-	for k, v := range m.counter {
-		values = append(values, models.MetricsValue{
-			ID:    k,
-			MType: string(CounterType),
-			Delta: &v,
-		})
-	}
-
-	return values
-}
-
-func (m *Mem) normalizeName(name string) string {
-	return strings.TrimSpace(name)
+	return NewMem(), nil
 }

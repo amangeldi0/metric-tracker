@@ -11,7 +11,7 @@ import (
 
 func (bh BaseHandler) Values() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		values := bh.storage.GetAll()
+		values, _ := bh.storage.GetAll()
 
 		text := "<center><h1>Values</h1>"
 		for _, value := range values {

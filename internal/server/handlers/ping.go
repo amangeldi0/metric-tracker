@@ -7,7 +7,7 @@ import (
 
 func (bh BaseHandler) Ping() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		err := bh.dbpool.Ping(ctx)
+		err := bh.Ping()
 
 		if err != nil {
 			ctx.Status(http.StatusInternalServerError)

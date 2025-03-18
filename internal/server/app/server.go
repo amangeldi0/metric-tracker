@@ -1,14 +1,11 @@
 package app
 
 import (
-	"context"
 	"github.com/amangeldi0/metric-tracker/internal/server/config"
-	"github.com/amangeldi0/metric-tracker/internal/server/filestorage"
 	"github.com/amangeldi0/metric-tracker/internal/server/handlers"
 	"github.com/amangeldi0/metric-tracker/internal/server/middlewares"
 	"github.com/amangeldi0/metric-tracker/internal/server/storage"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -25,56 +22,38 @@ func Run() {
 		sugarLogger.Panicf("Failed loading config: %s", err)
 	}
 
-	conn, _ := pgx.Connect(context.Background(), config.Config.DatabaseDSN)
+	str, err := storage.SetupStorage(sugarLogger)
 
-	memStorage := storage.NewMem()
-
-	defer conn.Close(context.Background())
-
-	var fileStorage *filestorage.Storage
-	if config.Config.FileStoragePath != "" {
-		fileStorage, err = filestorage.New(&memStorage, sugarLogger)
-		if err != nil {
-			sugarLogger.Panicf("Failed loading file storage: %s", err)
-		}
-
-		if err = fileStorage.Restore(); err != nil {
-			sugarLogger.Panicf("Failed to recover data from file: %s", err)
-		}
-		fileStorage.Start()
+	if err != nil {
+		sugarLogger.Panicf("Failed setup storage: %s", err)
 	}
 
-	defer func(logger *zap.Logger, fileStorage *filestorage.Storage) {
-		if err = logger.Sync(); err != nil {
+	defer func() {
+		if err = sugarLogger.Sync(); err != nil {
 			panic(err)
 		}
-		if fileStorage != nil {
-			if err = fileStorage.Close(); err != nil {
-				panic(err)
-			}
-		}
-	}(logger, fileStorage)
 
-	r := setupRouter(&memStorage, fileStorage, sugarLogger, conn)
+		if err = str.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
+	r := setupRouter(str, sugarLogger)
 	if err = r.Run(config.Config.Address); err != nil {
 		sugarLogger.Panicf("Failed start server: %s", err)
 	}
 }
 
-func setupRouter(storage *storage.Mem, fileStorage *filestorage.Storage, logger *zap.SugaredLogger, conn *pgx.Conn) *gin.Engine {
+func setupRouter(storage storage.Storage, logger *zap.SugaredLogger) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
 
-	baseHandler := handlers.NewBase(storage, logger, conn)
+	baseHandler := handlers.NewBase(storage, logger)
 	baseMiddleware := middlewares.NewBase(logger)
 
 	r.Use(baseMiddleware.Compress)
 	r.Use(baseMiddleware.Logger)
-
-	if fileStorage != nil {
-		r.Use(fileStorage.GetMiddleware())
-	}
 
 	r.GET("/", baseHandler.Values())
 

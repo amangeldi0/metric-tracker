@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"github.com/amangeldi0/metric-tracker/internal/server/models"
 	"github.com/amangeldi0/metric-tracker/internal/server/storage"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -63,7 +62,7 @@ func (bh BaseHandler) ValueByBody() gin.HandlerFunc {
 			return
 		}
 
-		var obj models.MetricsValue
+		var obj storage.MetricsValue
 		if response, statusCode, err := bh.validateAndShouldBindJSON(ctx, &obj); err != nil {
 			if statusCode == http.StatusInternalServerError {
 				bh.log.Errorf("Error decoding object request: %s (%T)", err, err)

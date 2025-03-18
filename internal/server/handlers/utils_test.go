@@ -75,7 +75,7 @@ func TestValidateContentType(t *testing.T) {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	bh := NewBase(nil, zaptest.NewLogger(t).Sugar(), nil)
+	bh := NewBase(nil, zaptest.NewLogger(t).Sugar())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -104,8 +104,8 @@ func getRandomInt64() *int64 {
 
 func TestValidateAndShouldBindJSON(t *testing.T) {
 	type args struct {
-		obj         models.MetricsUpdate
-		body        models.MetricsUpdate
+		obj         storage.MetricsUpdate
+		body        storage.MetricsUpdate
 		withoutBody bool
 	}
 	type want struct {
@@ -121,8 +121,8 @@ func TestValidateAndShouldBindJSON(t *testing.T) {
 		{
 			name: "Positive gauge",
 			args: args{
-				obj: models.MetricsUpdate{},
-				body: models.MetricsUpdate{
+				obj: storage.MetricsUpdate{},
+				body: storage.MetricsUpdate{
 					ID:    "TestGauge",
 					MType: string(storage.GaugeType),
 					Value: getRandomFloat64(),
@@ -137,8 +137,8 @@ func TestValidateAndShouldBindJSON(t *testing.T) {
 		{
 			name: "Positive counter",
 			args: args{
-				obj: models.MetricsUpdate{},
-				body: models.MetricsUpdate{
+				obj: storage.MetricsUpdate{},
+				body: storage.MetricsUpdate{
 					ID:    "TestCounter",
 					MType: string(storage.CounterType),
 					Delta: getRandomInt64(),
@@ -153,8 +153,8 @@ func TestValidateAndShouldBindJSON(t *testing.T) {
 		{
 			name: "Negative without params",
 			args: args{
-				obj:  models.MetricsUpdate{},
-				body: models.MetricsUpdate{},
+				obj:  storage.MetricsUpdate{},
+				body: storage.MetricsUpdate{},
 			},
 			want: want{
 				errorResponse: &models.ErrorResponse{Error: "Field validation for \"ID\" failed on the 'required' tag."},
@@ -165,8 +165,8 @@ func TestValidateAndShouldBindJSON(t *testing.T) {
 		{
 			name: "Negative invalid type",
 			args: args{
-				obj: models.MetricsUpdate{},
-				body: models.MetricsUpdate{
+				obj: storage.MetricsUpdate{},
+				body: storage.MetricsUpdate{
 					ID:    "NTest",
 					MType: "heh",
 				},
@@ -180,8 +180,8 @@ func TestValidateAndShouldBindJSON(t *testing.T) {
 		{
 			name: "Negative without value (gauge)",
 			args: args{
-				obj: models.MetricsUpdate{},
-				body: models.MetricsUpdate{
+				obj: storage.MetricsUpdate{},
+				body: storage.MetricsUpdate{
 					ID:    "NTest",
 					MType: string(storage.GaugeType),
 					Delta: getRandomInt64(),
@@ -196,8 +196,8 @@ func TestValidateAndShouldBindJSON(t *testing.T) {
 		{
 			name: "Negative without value (counter)",
 			args: args{
-				obj: models.MetricsUpdate{},
-				body: models.MetricsUpdate{
+				obj: storage.MetricsUpdate{},
+				body: storage.MetricsUpdate{
 					ID:    "NTest",
 					MType: string(storage.CounterType),
 					Value: getRandomFloat64(),
@@ -223,7 +223,7 @@ func TestValidateAndShouldBindJSON(t *testing.T) {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	bh := NewBase(nil, zaptest.NewLogger(t).Sugar(), nil)
+	bh := NewBase(nil, zaptest.NewLogger(t).Sugar())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
