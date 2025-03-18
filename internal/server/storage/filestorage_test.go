@@ -39,13 +39,12 @@ func TestSuccessFileStorage(t *testing.T) {
 		},
 	}
 
-	file, err := os.CreateTemp(t.TempDir(), "tests-file-storage-*.json")
+	file, err := os.CreateTemp(t.TempDir(), "tests-file-mem_storage-*.json")
 	require.NoError(t, err)
 	t.Setenv("FILE_STORAGE_PATH", file.Name())
 
 	require.NoError(t, config.Parse())
 
-	stor := NewMem()
 	log := zaptest.NewLogger(t).Sugar()
 
 	fStorage, err := NewFileStorage(log)
@@ -54,9 +53,9 @@ func TestSuccessFileStorage(t *testing.T) {
 	for _, metric := range metrics {
 		switch metric.MType {
 		case string(GaugeType):
-			stor.SetGauge(metric.ID, *metric.Value)
+			_ = fStorage.SetGauge(metric.ID, *metric.Value)
 		case string(CounterType):
-			stor.AddCounter(metric.ID, *metric.Delta)
+			_ = fStorage.AddCounter(metric.ID, *metric.Delta)
 		}
 	}
 
@@ -65,15 +64,13 @@ func TestSuccessFileStorage(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, count, len(metrics))
 
-	stor = NewMem()
-
 	fStorage, err = NewFileStorage(log)
 	require.NoError(t, err)
 
 	require.NoError(t, fStorage.Restore())
 
-	all, _ := stor.GetAll()
-	require.Equal(t, len(all), len(metrics))
+	metrics, _ = fStorage.GetAll()
+	require.Equal(t, len(metrics), len(metrics))
 
 	if err = os.Remove(file.Name()); err != nil {
 		t.Logf("Не удалось удалить тестовый json-файл: %s", err)
